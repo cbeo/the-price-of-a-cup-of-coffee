@@ -25,6 +25,7 @@
                                :initform nil
                                :initarg (make-keyword-symbol slot))))))
 
+
 (def-normal-class pedestrian ()
   (walk-vec (list 2 0))
   (comfort-rad 60)
@@ -49,6 +50,7 @@
     (sdl2:with-window (win :w 800 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
       (sdl2:with-renderer (rndr win :flags '(:accelerated))
         (sdl2:with-event-loop (:method :poll)
+
           (:keydown (:keysym keysym)
                     (if (sdl2:scancode= (sdl2:scancode-value keysym) :scancode-escape)
                         (sdl2:push-event :quit)))

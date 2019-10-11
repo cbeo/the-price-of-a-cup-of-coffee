@@ -8,4 +8,5 @@
   :serial t
   :depends-on (#:animise #:sdl2 #:sdl2-image #:harmony)
   :components ((:file "package")
+               (:file "assets")
                (:file "the-price-of-a-cup-of-coffee")))
