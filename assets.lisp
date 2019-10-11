@@ -29,13 +29,13 @@
 
 (defun create-sprite-faces (defs)
   (list :facing-down (select-tile-rects defs "front")
-        :walking-down (select-tile-rects defs "front" "walkforward1" "front" "walkforward2")
+        :walking-down (select-tile-rects defs "walkforward1" "front" "walkforward2" "front")
         :facing-up (select-tile-rects defs "back")
-        :walking-up (select-tile-rects defs "back" "walkback1" "back" "walkback2")
+        :walking-up (select-tile-rects defs  "walkback1" "back" "walkback2" "back")
         :facing-left (select-tile-rects defs "profileleft")
-        :walking-left (select-tile-rects defs "profileleft" "walkleft1" "profileleft" "walkleft2")
+        :walking-left (select-tile-rects defs "walkleft1" "profileleft" "walkleft2" "profileleft")
         :facing-right (select-tile-rects defs "profileright")
-        :walking-right (select-tile-rects defs "profileright" "walkright1" "profileright" "walkright1")))
+        :walking-right (select-tile-rects defs "walkright1" "profileright" "walkright1" "profileright")))
 
 ;;; Nance Assets
 

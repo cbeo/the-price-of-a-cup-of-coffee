@@ -2,9 +2,10 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
-(defvar *human-fps* 3)
+(defvar *human-fps* 5)
 
 (def-normal-class human ()
+  (walk-vec (cons 0 0))
   pos
   sheet
   faces
@@ -24,7 +25,9 @@
 (defgeneric update (thing time))
 
 (defmethod update ((human human) ticks)
-  (with-slots (frame next-frame-at faces face) human
+  (with-slots (frame next-frame-at faces face walk-vec pos) human
+    (incf (sdl2:rect-x pos) (car walk-vec))
+    (incf (sdl2:rect-y pos) (cdr walk-vec))
     (when (<= next-frame-at ticks)
       (incf next-frame-at (/ 1000 *human-fps*))
       (setf next-frame-at (max next-frame-at ticks))
@@ -38,7 +41,6 @@
 
 
 (def-normal-class pedestrian (human)
-  (walk-vec (list 2 0))
   (comfort-rad 60)
   (react-per-sec 1)
   (anger 0.1)
@@ -51,7 +53,6 @@
   (money 0)
   (coldness 0)
   (sick-p nil)
-  (walking-speed 5)
   (relax-rate 1))
 
 
@@ -67,7 +68,7 @@
                          :faces (create-sprite-faces *nance-tile-defs*)))))
 
 
-(defparameter +frame-delay+ (round (/ 1000 24)))
+(defparameter +frame-delay+ (round (/ 1000 60)))
 
 (defparameter +action-key+ :scancode-space)
 
@@ -89,23 +90,31 @@
     (:up :facing-up)
     (:down :facing-down)))
 
-(defun facing-p (human dir)
-  (equal dir 
-         (case (face human)
-           ((:facing-down :walking-down) :down)
-           ((:facing-up :walking-up) :up)
-           ((:facing-left :walking-left) :left)
-           ((:facing-right :walking-right) :right))))
+;; (defun facing-p (human dir)
+;;   (equal dir 
+;;          (case (face human)
+;;            ((:facing-down :walking-down) :down)
+;;            ((:facing-up :walking-up) :up)
+;;            ((:facing-left :walking-left) :left)
+;;            ((:facing-right :walking-right) :right))))
 
 (defun walk-hero (dir)
-  (unless (facing-p *nance* dir)
+  (unless (equal (walking-face dir) (face *nance*))
     (setf (face *nance*) (walking-face dir))
-    (setf (frame *nance*) 0)))
+    (setf (frame *nance*) 0)
+    (setf (walk-vec *nance*)
+          (case dir
+            (:right (cons 6 0))
+            (:left (cons -6 0))
+            (:up (cons 0 -6))
+            (:down (cons 0 6))))))
 
 (defun stop-hero (dir)
   (setf (face *nance*)
         (standing-face dir))
-  (setf (frame *nance*) 0))
+  (setf (frame *nance*) 0)
+  (setf (walk-vec *nance*) (cons 0 0)))
+
 
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
@@ -127,6 +136,7 @@
 
 
 (defmethod render ((game (eql :game)) renderer)
+  (sdl2:set-render-draw-color renderer 255 255 255 255)
   (sdl2:render-clear renderer)
   (render *nance* renderer)
   (sdl2:render-present renderer))
@@ -134,7 +144,7 @@
 
 (defun main ()
   (sdl2:with-init (:everything)
-    (sdl2:with-window (win :w 800 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
+    (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
       (sdl2:with-renderer (renderer win :flags '(:accelerated))
 
         (boot-up renderer)
@@ -149,11 +159,12 @@
           (:keyup (:keysym keysym)  (handle-keyup keysym))
 
           (:idle ()
+                 (render :game renderer)
                  ;; update sprites
                  (update *nance* (sdl2:get-ticks))
                  ;; update tweens
                  ;; render
-                 (render :game renderer)
+
                  (sdl2:delay +frame-delay+))
 
           (:quit ()
