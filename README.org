@@ -1,0 +1,12 @@
+
+* Game
+* Building
+* Credit and Licenses
+
+  + Design and Code by :: [[https://github.com/thegoofist/][The Goofist]] under the  [[./LICENSE][GNU Public License version 3]].
+
+  + Art by :: *Ct* under a [[https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode][Attribution NonCommercial ShareAlike]] Createive Commons License.
+
+              
+
+  
