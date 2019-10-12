@@ -2,7 +2,7 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
-(defvar *human-fps* 4)
+
 
 (def-normal-class human ()
   (walk-vec (cons 0 0))
@@ -24,25 +24,14 @@
 (defgeneric render (sprite renderer))
 (defgeneric update (thing time))
 
+(defparameter +window-width+ 1024)
+(defparameter +window-height+ 600)
 (defparameter +vert-min+ 16)
-(defparameter +vert-max+ (- 600 128 10))
+(defparameter +vert-max+ (- +window-height+ 128 10))
 
-(defmethod update ((human human) ticks)
-  (with-slots (frame next-frame-at faces face walk-vec pos) human
-    (setf (sdl2:rect-x pos) (mod (+ (sdl2:rect-x pos) (car walk-vec)) 1024))
-    (setf (sdl2:rect-y pos)
-          (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
-                 +vert-min+ +vert-max+))
-    (when (<= next-frame-at ticks)
-      (incf next-frame-at (/ 1000 *human-fps*))
-      (setf next-frame-at (max next-frame-at ticks))
-      (setf frame (mod (1+ frame) (length (getf faces face)))))))
-
-(defmethod render ((human human) renderer)
-  (with-slots (pos sheet faces face frame) human
-    (sdl2:render-copy renderer sheet
-                      :dest-rect pos
-                      :source-rect (aref (getf faces face) frame))))
+(defvar *human-frame-pause* (/ 1000 4))
+(defun set-human-fps (n)
+  (setf *human-frame-pause* (/ 1000 n)))
 
 
 (def-normal-class pedestrian (human)
@@ -52,6 +41,25 @@
   (kindness 0.02)
   (generosity 0.25)
   (vulnerability 3))
+
+
+(defmethod update ((human human) ticks)
+  (with-slots (frame next-frame-at faces face walk-vec pos) human
+    (setf (sdl2:rect-x pos) (mod (+ (sdl2:rect-x pos) (car walk-vec)) 1024))
+    (setf (sdl2:rect-y pos)
+          (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
+                 +vert-min+ +vert-max+))
+    (when (<= next-frame-at ticks)
+      (setf next-frame-at (max (+ *human-frame-pause* next-frame-at) ticks))
+      (setf frame (mod (1+ frame) (length (getf faces face)))))))
+
+
+(defmethod render ((human human) renderer)
+  (with-slots (pos sheet faces face frame) human
+    (sdl2:render-copy renderer sheet
+                      :dest-rect pos
+                      :source-rect (aref (getf faces face) frame))))
+
 
 (def-normal-class hero (human)
   (stress 0)
@@ -78,6 +86,9 @@
 (defparameter +action-key+ :scancode-space)
 
 (defun action-key-pressed ()
+  (if (eql *current-track* *looking-up-track*)
+      (play-track *cold-day-track*)
+      (play-track *looking-up-track*))
   (print "Action"))
 
 
@@ -94,14 +105,6 @@
     (:right :facing-right)
     (:up :facing-up)
     (:down :facing-down)))
-
-;; (defun facing-p (human dir)
-;;   (equal dir 
-;;          (case (face human)
-;;            ((:facing-down :walking-down) :down)
-;;            ((:facing-up :walking-up) :up)
-;;            ((:facing-left :walking-left) :left)
-;;            ((:facing-right :walking-right) :right))))
 
 (defun walk-hero (dir)
   (unless (equal (walking-face dir) (face *nance*))
@@ -124,16 +127,16 @@
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (match-key key
-               (:scancode-left (walk-hero :left))
-               (:scancode-right (walk-hero  :right))
-               (:scancode-up (walk-hero :up))
-               (:scancode-down (walk-hero :down)))))
+      (+action-key+ (action-key-pressed))
+      (:scancode-left (walk-hero :left))
+      (:scancode-right (walk-hero  :right))
+      (:scancode-up (walk-hero :up))
+      (:scancode-down (walk-hero :down)))))
 
 
 (defun handle-keyup (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (match-key key
-      (+action-key+ (action-key-pressed))
       (:scancode-left (stop-hero :left))
       (:scancode-right (stop-hero  :right))
       (:scancode-up (stop-hero :up))
@@ -146,11 +149,28 @@
   (render *nance* renderer)
   (sdl2:render-present renderer))
 
+(defvar *harmony-initialized-p* nil)
+(defvar *cold-day-track*)
+(defvar *looking-up-track*)
+(defvar *current-track*)
+
+(defun play-track (track)
+  (harmony-simple:stop *current-track*)
+  (harmony-simple:resume track)
+  (setf *current-track* track))
+
 
 (defun main ()
 
-  (harmony-simple:initialize)
-  (harmony-simple:play #P"assets/coldday.mp3" :music :loop t)
+  (unless *harmony-initialized-p*
+    (harmony-simple:initialize)
+    (setf *looking-up-track* (harmony-simple:play #p"assets/thingslookup.mp3" :music :loop t))
+    (harmony-simple:stop *looking-up-track*)
+    (setf *cold-day-track* (harmony-simple:play #p"assets/coldday.mp3" :music :loop t))
+    (setf *current-track* *cold-day-track*)
+    (setf *harmony-initialized-p* t))
+
+  (play-track *cold-day-track*)
 
   (sdl2:with-init (:everything)
     (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
@@ -177,6 +197,7 @@
                  (sdl2:delay +frame-delay+))
 
           (:quit ()
+                 (harmony-simple:stop *current-track*)
                  (free-assets)
                  t))))))
 
