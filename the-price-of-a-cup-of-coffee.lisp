@@ -2,7 +2,7 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
-(defvar *human-fps* 5)
+(defvar *human-fps* 4)
 
 (def-normal-class human ()
   (walk-vec (cons 0 0))
@@ -24,10 +24,15 @@
 (defgeneric render (sprite renderer))
 (defgeneric update (thing time))
 
+(defparameter +vert-min+ 16)
+(defparameter +vert-max+ (- 600 128 10))
+
 (defmethod update ((human human) ticks)
   (with-slots (frame next-frame-at faces face walk-vec pos) human
-    (incf (sdl2:rect-x pos) (car walk-vec))
-    (incf (sdl2:rect-y pos) (cdr walk-vec))
+    (setf (sdl2:rect-x pos) (mod (+ (sdl2:rect-x pos) (car walk-vec)) 1024))
+    (setf (sdl2:rect-y pos)
+          (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
+                 +vert-min+ +vert-max+))
     (when (<= next-frame-at ticks)
       (incf next-frame-at (/ 1000 *human-fps*))
       (setf next-frame-at (max next-frame-at ticks))
@@ -143,6 +148,10 @@
 
 
 (defun main ()
+
+  (harmony-simple:initialize)
+  (harmony-simple:play #P"assets/coldday.mp3" :music :loop t)
+
   (sdl2:with-init (:everything)
     (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
       (sdl2:with-renderer (renderer win :flags '(:accelerated))
