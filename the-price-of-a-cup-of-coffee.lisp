@@ -111,19 +111,7 @@
 (defun action-key-pressed ()
   (print "Action"))
 
-(defun walking-face (dir)
-  (case dir
-    (:left 'walking-left)
-    (:right 'walking-right)
-    (:up 'walking-up)
-    (:down 'walking-down)))
 
-(defun standing-face (dir)
-  (case dir
-    (:left 'facing-left)
-    (:right 'facing-right)
-    (:up 'facing-up)
-    (:down 'facing-down)))
 
 
 (defun any-p (arg &rest preds)
