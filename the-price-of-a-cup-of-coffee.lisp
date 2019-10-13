@@ -2,20 +2,22 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
-
-
 (def-normal-class human ()
   (walk-vec (cons 0 0))
   pos
   sheet
-  faces
-  (face :facing-down)
+  (faces ((lambda () +shared-faces+)))
+  (face 'facing-down)
   (frame 0)
   (next-frame-at 0))
 
+(defun get-frame-rect (human)
+  (with-slots (faces face frame) human
+      (aref (funcall face faces) frame)))
+
 (defmethod initialize-instance :after ((human human) &key)
   (with-slots (faces pos) human
-    (let ((rect (aref (getf faces :facing-down) 0)))
+    (let ((rect (get-frame-rect human)))
       (setf pos
             (sdl2:make-rect 0 0
                             (sdl2:rect-width rect)
@@ -34,23 +36,22 @@
   (setf *human-frame-pause* (/ 1000 n)))
 
 
-
 (defmethod update ((human human) ticks)
   (with-slots (frame next-frame-at faces face walk-vec pos) human
-    (setf (sdl2:rect-x pos) (mod (+ (sdl2:rect-x pos) (car walk-vec)) 1024))
+    (setf (sdl2:rect-x pos) (mod (+ (sdl2:rect-x pos) (car walk-vec)) +window-width+))
     (setf (sdl2:rect-y pos)
           (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
                  +vert-min+ +vert-max+))
     (when (<= next-frame-at ticks)
       (setf next-frame-at (max (+ *human-frame-pause* next-frame-at) ticks))
-      (setf frame (mod (1+ frame) (length (getf faces face)))))))
+      (setf frame (mod (1+ frame) (length (funcall face faces)))))))
 
 
 (defmethod render ((human human) renderer)
   (with-slots (pos sheet faces face frame) human
     (sdl2:render-copy renderer sheet
                       :dest-rect pos
-                      :source-rect (aref (getf faces face) frame))))
+                      :source-rect (get-frame-rect human))))
 
 
 (def-normal-class hero (human)
@@ -71,16 +72,14 @@
 
 
 
-(defvar *nance* nil)
+(defvar *nance*)
+
 
 (defun boot-up (renderer)
-  (setf *nance-tile-defs* (make-source-rects *nance-tile-defs*))
-
   (with-surface-from-file (surf +nance-sheet-image+)
     (setf *nance*
           (make-instance 'hero
-                         :sheet (sdl2:create-texture-from-surface renderer surf)
-                         :faces (create-sprite-faces *nance-tile-defs*)))))
+                         :sheet (sdl2:create-texture-from-surface renderer surf)))))
 
 
 (defparameter +frame-delay+ (round (/ 1000 60)))
@@ -88,42 +87,43 @@
 (defparameter +action-key+ :scancode-space)
 
 (defun action-key-pressed ()
-  (if (eql *current-track* *looking-up-track*)
-      (play-track *cold-day-track*)
-      (play-track *looking-up-track*))
+  ;; (if (eql *current-track* *looking-up-track*)
+  ;;     (play-track *cold-day-track*)
+  ;;     (play-track *looking-up-track*))
   (print "Action"))
 
 (defun walking-face (dir)
   (case dir
-    (:left :walking-left)
-    (:right :walking-right)
-    (:up :walking-up)
-    (:down :walking-down)))
+    (:left 'walking-left)
+    (:right 'walking-right)
+    (:up 'walking-up)
+    (:down 'walking-down)))
 
 (defun standing-face (dir)
   (case dir
-    (:left :facing-left)
-    (:right :facing-right)
-    (:up :facing-up)
-    (:down :facing-down)))
+    (:left 'facing-left)
+    (:right 'facing-right)
+    (:up 'facing-up)
+    (:down 'facing-down)))
 
 (defun walk-hero (dir)
-  (unless (equal (walking-face dir) (face *nance*))
-    (setf (face *nance*) (walking-face dir))
-    (setf (frame *nance*) 0)
-    (setf (walk-vec *nance*)
-          (case dir
-            (:right (cons 6 0))
-            (:left (cons -6 0))
-            (:up (cons 0 -6))
-            (:down (cons 0 6))))))
+  (with-slots (face frame walk-vec) *nance*
+    (unless (eql (walking-face dir) face)
+      (setf face (walking-face dir))
+      (setf frame 0)
+      (case dir
+        (:right (setf (car walk-vec) 6))
+        (:left (setf (car walk-vec) -6))
+        (:up (setf (cdr walk-vec) -6))
+        (:down (setf (cdr walk-vec) 6))))))
+
 
 (defun stop-hero (dir)
-  (setf (face *nance*)
-        (standing-face dir))
-  (setf (frame *nance*) 0)
-  (setf (walk-vec *nance*) (cons 0 0)))
-
+  (with-slots (face frame walk-vec) *nance*
+    (setf face (standing-face dir))
+    (setf frame 0)
+    (setf (car walk-vec) 0)
+    (setf (cdr walk-vec) 0)))
 
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
