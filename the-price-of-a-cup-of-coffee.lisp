@@ -34,14 +34,6 @@
   (setf *human-frame-pause* (/ 1000 n)))
 
 
-(def-normal-class pedestrian (human)
-  (comfort-rad 60)
-  (react-per-sec 1)
-  (anger 0.1)
-  (kindness 0.02)
-  (generosity 0.25)
-  (vulnerability 3))
-
 
 (defmethod update ((human human) ticks)
   (with-slots (frame next-frame-at faces face walk-vec pos) human
@@ -69,6 +61,16 @@
   (relax-rate 1))
 
 
+(def-normal-class pedestrian (human)
+  (comfort-rad 60)
+  (react-per-sec 1)
+  (anger 0.1)
+  (kindness 0.02)
+  (generosity 0.25)
+  (vulnerability 3))
+
+
+
 (defvar *nance* nil)
 
 (defun boot-up (renderer)
@@ -90,7 +92,6 @@
       (play-track *cold-day-track*)
       (play-track *looking-up-track*))
   (print "Action"))
-
 
 (defun walking-face (dir)
   (case dir
