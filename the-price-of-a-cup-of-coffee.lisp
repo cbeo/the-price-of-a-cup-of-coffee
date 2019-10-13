@@ -4,6 +4,8 @@
 
 (def-normal-class human ()
   (walk-vec (cons 0 0))
+  (walk-speed 6)
+  diag-walk-speed
   pos
   sheet
   (faces ((lambda () +shared-faces+)))
@@ -11,11 +13,24 @@
   (frame 0)
   (next-frame-at 0))
 
+(defun walking-p (human)
+  (not (standing-p human)))
+
+(defun standing-p (human)
+  (and (zerop (car (walk-vec human)))
+       (zerop (cdr (walk-vec human)))))
+
+
+(defmethod (setf walk-speed) :after (newval (human human))
+  (setf (diag-walk-speed human)
+        (floor (sqrt (* 0.5 (* newval newval))))))
+
 (defun get-frame-rect (human)
   (with-slots (faces face frame) human
       (aref (funcall face faces) frame)))
 
 (defmethod initialize-instance :after ((human human) &key)
+  (setf (walk-speed human) 6)
   (with-slots (faces pos) human
     (let ((rect (get-frame-rect human)))
       (setf pos
@@ -38,7 +53,7 @@
 
 (defmethod update ((human human) ticks)
   (with-slots (frame next-frame-at faces face walk-vec pos) human
-    (setf (sdl2:rect-x pos) (mod (+ (sdl2:rect-x pos) (car walk-vec)) +window-width+))
+    (incf (sdl2:rect-x pos) (car walk-vec))
     (setf (sdl2:rect-y pos)
           (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
                  +vert-min+ +vert-max+))
@@ -61,6 +76,11 @@
   (sick-p nil)
   (relax-rate 1))
 
+(defmethod update :after ((hero hero) ticks)
+  (with-slots (pos) hero
+    (setf (sdl2:rect-x pos)
+          (mod (sdl2:rect-x pos) +window-width+))))
+
 
 (def-normal-class pedestrian (human)
   (comfort-rad 60)
@@ -77,19 +97,18 @@
 
 (defun boot-up (renderer)
   (with-surface-from-file (surf +nance-sheet-image+)
-    (setf *nance*
-          (make-instance 'hero
-                         :sheet (sdl2:create-texture-from-surface renderer surf)))))
+    (setf *nance-texture*  (sdl2:create-texture-from-surface renderer surf)))
+
+  (with-surface-from-file (surf +suit-sheet-image+)
+    (setf *suit-texture* (sdl2:create-texture-from-surface renderer surf)))
+
+  (setf *nance* (make-instance 'hero :sheet *suit-texture*)))
 
 
 (defparameter +frame-delay+ (round (/ 1000 60)))
 
-(defparameter +action-key+ :scancode-space)
 
 (defun action-key-pressed ()
-  ;; (if (eql *current-track* *looking-up-track*)
-  ;;     (play-track *cold-day-track*)
-  ;;     (play-track *looking-up-track*))
   (print "Action"))
 
 (defun walking-face (dir)
@@ -106,42 +125,158 @@
     (:up 'facing-up)
     (:down 'facing-down)))
 
-(defun walk-hero (dir)
-  (with-slots (face frame walk-vec) *nance*
-    (unless (eql (walking-face dir) face)
-      (setf face (walking-face dir))
-      (setf frame 0)
-      (case dir
-        (:right (setf (car walk-vec) 6))
-        (:left (setf (car walk-vec) -6))
-        (:up (setf (cdr walk-vec) -6))
-        (:down (setf (cdr walk-vec) 6))))))
+
+(defun any-p (arg &rest preds)
+  (and preds
+    (or (funcall (car preds) arg)
+        (apply 'any-p (cons arg (cdr preds))))))
+
+(defun all-p (arg &rest preds)
+  (if preds
+      (and (funcall (car preds) arg)
+           (apply 'all-p (cons arg (cdr preds))))
+      t))
+
+(defun set-walk-vec-by-keysdown ()
+  (with-slots (walk-vec walk-speed diag-walk-speed) *nance*
+    (cond ((< 2 (number-of-dpad-keys-down))
+           (setf (car walk-vec) 0)
+           (setf (cdr walk-vec) 0))
+
+          ((or (all-p *keys-down* 'keys-down-left 'keys-down-right)
+               (all-p *keys-down* 'keys-down-up 'keys-down-down))
+           (setf (car walk-vec) 0)
+           (setf (cdr walk-vec) 0))
+
+          ((all-p *keys-down* 'keys-down-right 'keys-down-down)
+           (setf (car walk-vec) diag-walk-speed)
+           (setf (cdr walk-vec) diag-walk-speed))
+
+          ((all-p *keys-down* 'keys-down-right 'keys-down-up)
+           (setf (car walk-vec) diag-walk-speed)
+           (setf (cdr walk-vec) (* -1 diag-walk-speed)))
+
+          ((all-p *keys-down* 'keys-down-left 'keys-down-down)
+           (setf (car walk-vec) (* -1 diag-walk-speed))
+           (setf (cdr walk-vec) diag-walk-speed))
+
+          ((all-p *keys-down* 'keys-down-left 'keys-down-up)
+           (setf (car walk-vec) (* -1 diag-walk-speed))
+           (setf (cdr walk-vec) (* -1 diag-walk-speed)))
+
+          ((keys-down-right *keys-down*)
+           (setf (car walk-vec) walk-speed)
+           (setf (cdr walk-vec) 0))
+
+          ((keys-down-left *keys-down*)
+           (setf (car walk-vec) (* -1 walk-speed))
+           (setf (cdr walk-vec) 0))
+
+          ((keys-down-up *keys-down*)
+           (setf (car walk-vec) 0)
+           (setf (cdr walk-vec) (* -1 walk-speed)))
+
+          ((keys-down-down *keys-down*)
+           (setf (car walk-vec) 0)
+           (setf (cdr walk-vec) walk-speed))
+
+          (t (setf (car walk-vec) 0)
+             (setf (cdr walk-vec) 0)))))
 
 
-(defun stop-hero (dir)
-  (with-slots (face frame walk-vec) *nance*
-    (setf face (standing-face dir))
-    (setf frame 0)
-    (setf (car walk-vec) 0)
-    (setf (cdr walk-vec) 0)))
+(defun add-walk-hero-left ()
+  (setf (face *nance*) 'walking-left)
+  (setf (frame *nance*) 0)
+  (set-walk-vec-by-keysdown))
+
+(defun add-walk-hero-right ()
+  (setf (face *nance*) 'walking-right)
+  (setf (frame *nance*) 0)
+  (set-walk-vec-by-keysdown))
+
+(defun add-walk-hero-up ()
+  (setf (face *nance*) 'walking-up)
+  (setf (frame *nance*) 0)
+  (set-walk-vec-by-keysdown))
+
+(defun add-walk-hero-down ()
+  (setf (face *nance*) 'walking-down)
+  (setf (frame *nance*) 0)
+  (set-walk-vec-by-keysdown))
+
+(defun rem-walk-hero-left ()
+  (set-walk-vec-by-keysdown)
+  (unless (walking-p *nance*)
+    (setf (face *nance*) 'facing-left)
+    (setf (frame *nance*) 0)))
+
+(defun rem-walk-hero-right ()
+  (set-walk-vec-by-keysdown)
+  (unless (walking-p *nance*)
+    (setf (face *nance*) 'facing-right)
+    (setf (frame *nance*) 0)))
+
+(defun rem-walk-hero-up ()
+  (set-walk-vec-by-keysdown)
+  (unless (walking-p *nance*)
+    (setf (face *nance*) 'facing-up)
+    (setf (frame *nance*) 0)))
+
+(defun rem-walk-hero-down ()
+  (set-walk-vec-by-keysdown)
+  (unless (walking-p *nance*)
+    (setf (face *nance*) 'facing-down)
+    (setf (frame *nance*) 0)))
+
+(defstruct keys-down left right up down action)
+(defvar *keys-down* (make-keys-down))
+
+(defun number-of-dpad-keys-down ()
+   (let ((c 0))
+     (dolist (fn '(keys-down-left keys-down-right keys-down-up keys-down-down))
+        (when (funcall fn *keys-down*)
+          (incf c)))
+     c))
+
 
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (match-key key
-      (+action-key+ (action-key-pressed))
-      (:scancode-left (walk-hero :left))
-      (:scancode-right (walk-hero  :right))
-      (:scancode-up (walk-hero :up))
-      (:scancode-down (walk-hero :down)))))
+      (:scancode-space (unless (keys-down-action *keys-down*)
+                         (setf (keys-down-action *keys-down*) t)
+                         (action-key-pressed)))
+
+      (:scancode-left (unless (keys-down-left *keys-down*)
+                        (setf (keys-down-left *keys-down*) t)
+                        (add-walk-hero-left)))
+
+      (:scancode-right (unless (keys-down-right *keys-down*)
+                         (setf (keys-down-right *keys-down*) t)
+                         (add-walk-hero-right)))
+
+      (:scancode-up (unless (keys-down-up *keys-down*)
+                      (setf (keys-down-up *keys-down*) t)
+                      (add-walk-hero-up)))
+
+      (:scancode-down (unless (keys-down-down *keys-down*)
+                        (setf (keys-down-down *keys-down*) t)
+                        (add-walk-hero-down))))))
 
 
 (defun handle-keyup (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (match-key key
-      (:scancode-left (stop-hero :left))
-      (:scancode-right (stop-hero  :right))
-      (:scancode-up (stop-hero :up))
-      (:scancode-down (stop-hero :down)))))
+      (:scancode-left (setf (keys-down-left *keys-down*) nil)
+                      (rem-walk-hero-left))
+
+      (:scancode-right (setf (keys-down-right *keys-down*) nil)
+                       (rem-walk-hero-right))
+
+      (:scancode-up (setf (keys-down-up *keys-down*) nil)
+                    (rem-walk-hero-up))
+
+      (:scancode-down (setf (keys-down-down *keys-down*) nil)
+                      (rem-walk-hero-down)))))
 
 
 (defmethod render ((game (eql :game)) renderer)
@@ -161,17 +296,22 @@
   (setf *current-track* track))
 
 
-(defun main ()
+(defun start-debug ()
+  (bt:make-thread (lambda () (swank:create-server :port 4006 :dont-close t)))
+  (start))
 
-  (unless *harmony-initialized-p*
-    (harmony-simple:initialize)
-    (setf *looking-up-track* (harmony-simple:play #p"assets/thingslookup.mp3" :music :loop t))
-    (harmony-simple:stop *looking-up-track*)
-    (setf *cold-day-track* (harmony-simple:play #p"assets/coldday.mp3" :music :loop t))
-    (setf *current-track* *cold-day-track*)
-    (setf *harmony-initialized-p* t))
 
-  (play-track *cold-day-track*)
+(defun start ()
+
+  ;; (unless *harmony-initialized-p*
+  ;;   (harmony-simple:initialize)
+  ;;   (setf *looking-up-track* (harmony-simple:play #p"assets/thingslookup.mp3" :music :loop t))
+  ;;   (harmony-simple:stop *looking-up-track*)
+  ;;   (setf *cold-day-track* (harmony-simple:play #p"assets/coldday.mp3" :music :loop t))
+  ;;   (setf *current-track* *cold-day-track*)
+  ;;   (setf *harmony-initialized-p* t))
+
+  ;; (play-track *cold-day-track*)
 
   (sdl2:with-init (:everything)
     (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
@@ -198,7 +338,7 @@
                  (sdl2:delay +frame-delay+))
 
           (:quit ()
-                 (harmony-simple:stop *current-track*)
+;                 (harmony-simple:stop *current-track*)
                  (free-assets)
                  t))))))
 

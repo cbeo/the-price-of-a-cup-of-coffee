@@ -6,7 +6,7 @@
   :license  "GPL3"
   :version "0.0.1"
   :serial t
-  :depends-on (#:animise #:sdl2 #:sdl2-image #:harmony-simple)
+  :depends-on (#:animise #:sdl2 #:sdl2-image #:harmony-simple #:swank)
   :components ((:file "package")
                (:file "macros")
                (:file "assets")
