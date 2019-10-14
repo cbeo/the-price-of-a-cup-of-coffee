@@ -2,6 +2,71 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
+
+(defparameter +window-width+ 1024)
+(defparameter +window-height+ 600)
+(defparameter +meter-bar-height+ 32)
+
+
+(defgeneric render (sprite renderer))
+(defgeneric update (thing time))
+
+(def-normal-class status-meter ()
+  (color (list 0 0 0 255))
+  shape
+  filled-shape
+  max-width
+  percent)
+
+(defmethod render ((meter status-meter) renderer)
+  (with-slots (color shape filled-shape) meter
+    (destructuring-bind (r g b a) color
+      (sdl2:set-render-draw-color renderer r g b 100)
+      (sdl2:render-fill-rect renderer shape)
+      (sdl2:set-render-draw-color renderer r g b a)
+      (sdl2:render-fill-rect renderer filled-shape)
+      (sdl2:set-render-draw-color renderer 255 255 255 255)
+      (sdl2:render-draw-rect renderer shape))))
+
+
+(defmethod (setf percent) :after (new-val (meter status-meter))
+  (with-slots (filled-shape max-width percent) meter
+    (setf percent (clamp new-val 0.0 1.0))
+    (setf (sdl2:rect-width filled-shape) (round (* max-width percent)))))
+
+(let* ((padding 8)
+       (measure (round (/ +window-width+ 5)))
+       (width (- measure (* 2 padding)))
+       (double-width (- (* measure) (* 2 padding))))
+
+  (defvar *money-meter*
+    (make-instance 'status-meter
+                   :color (list 0 200 50 200)
+                   :filled-shape (sdl2:make-rect padding padding 1 +meter-bar-height+)
+                   :shape (sdl2:make-rect padding padding double-width +meter-bar-height+)
+                   :percent 0.0
+                   :max-width double-width))
+
+  (defvar *stress-meter*
+    (make-instance 'status-meter
+                   :color (list 200 20 20 200)
+                   :filled-shape (sdl2:make-rect (+ padding (* 3 measure)) padding
+                                                 1 +meter-bar-height+)
+
+                   :shape (sdl2:make-rect (+ padding (* 3 measure)) padding
+                                          width +meter-bar-height+)
+                   :percent 0.0
+                   :max-width width))
+
+  (defvar *cold-meter*
+    (make-instance 'status-meter
+                   :color (list 0 20 200 200)
+                   :filled-shape (sdl2:make-rect (+ padding (* 4 measure)) padding 1 +meter-bar-height+)
+                   :shape (sdl2:make-rect (+ padding (* 4 measure)) padding width +meter-bar-height+)
+                   :percent 0.0
+                   :max-width width)))
+
+
 (def-normal-class human ()
   (walk-vec (cons 0 0))
   (walk-speed 6)
@@ -38,11 +103,6 @@
                             (sdl2:rect-width rect)
                             (sdl2:rect-height rect))))))
 
-(defgeneric render (sprite renderer))
-(defgeneric update (thing time))
-
-(defparameter +window-width+ 1024)
-(defparameter +window-height+ 600)
 (defparameter +vert-min+ 16)
 (defparameter +vert-max+ (- +window-height+ 128 10))
 
@@ -102,7 +162,7 @@
   (with-surface-from-file (surf +suit-sheet-image+)
     (setf *suit-texture* (sdl2:create-texture-from-surface renderer surf)))
 
-  (setf *nance* (make-instance 'hero :sheet *suit-texture*)))
+  (setf *nance* (make-instance 'hero :sheet *nance-texture*)))
 
 
 (defparameter +frame-delay+ (round (/ 1000 60)))
@@ -110,9 +170,6 @@
 
 (defun action-key-pressed ()
   (print "Action"))
-
-
-
 
 (defun any-p (arg &rest preds)
   (and preds
@@ -268,9 +325,15 @@
 
 
 (defmethod render ((game (eql :game)) renderer)
-  (sdl2:set-render-draw-color renderer 255 255 255 255)
+  (sdl2:set-render-draw-color renderer 80 80 80 255)
   (sdl2:render-clear renderer)
   (render *nance* renderer)
+
+  (sdl2:set-render-draw-blend-mode renderer sdl2-ffi:+sdl-blendmode-blend+)
+  (render *money-meter* renderer)
+  (render *stress-meter* renderer)
+  (render *cold-meter* renderer)
+
   (sdl2:render-present renderer))
 
 (defvar *harmony-initialized-p* nil)
