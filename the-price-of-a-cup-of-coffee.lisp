@@ -5,7 +5,7 @@
 
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
-(defparameter +meter-bar-height+ 32)
+(defparameter +meter-bar-height+ 16)
 
 
 (defgeneric render (sprite renderer))
@@ -25,7 +25,7 @@
       (sdl2:render-fill-rect renderer shape)
       (sdl2:set-render-draw-color renderer r g b a)
       (sdl2:render-fill-rect renderer filled-shape)
-      (sdl2:set-render-draw-color renderer 255 255 255 255)
+      (sdl2:set-render-draw-color renderer r g b 255)
       (sdl2:render-draw-rect renderer shape))))
 
 
@@ -37,7 +37,7 @@
 (let* ((padding 8)
        (measure (round (/ +window-width+ 5)))
        (width (- measure (* 2 padding)))
-       (double-width (- (* measure) (* 2 padding))))
+       (double-width (- (* 2 measure) (* 2 padding))))
 
   (defvar *money-meter*
     (make-instance 'status-meter
@@ -60,11 +60,24 @@
 
   (defvar *cold-meter*
     (make-instance 'status-meter
-                   :color (list 0 20 200 200)
+                   :color (list 0 40 204 200)
                    :filled-shape (sdl2:make-rect (+ padding (* 4 measure)) padding 1 +meter-bar-height+)
                    :shape (sdl2:make-rect (+ padding (* 4 measure)) padding width +meter-bar-height+)
                    :percent 0.0
                    :max-width width)))
+
+(defvar *coffee-break-tween* nil)
+(defun drink-coffee ()
+  (let ((now (sdl2:get-ticks))
+        (dur 1750)
+        (ease #'cubic-in-out))
+    (setf *coffee-break-tween*
+          (as-group
+           (animate *cold-meter* 'percent 0.0 :start now :rounding nil :duration dur
+                    :ease ease)
+           (animate *stress-meter* 'percent (* 0.4 (percent *stress-meter*))
+                    :start now :rounding nil :duration dur
+                    :ease ease)))))
 
 
 (def-normal-class human ()
@@ -130,11 +143,18 @@
 
 
 (def-normal-class hero (human)
-  (stress 0)
-  (money 0)
-  (coldness 0)
-  (sick-p nil)
-  (relax-rate 1))
+  (sick-p nil))
+
+(defun make-sick (hero)
+  (unless (sick-p hero)
+    (setf (sick-p hero) t)
+    (setf (walk-speed hero) (round (* 0.5 (walk-speed hero))))))
+
+(defun get-better (hero)
+  (when (sick-p hero)
+    (setf (sick-p hero) nil)
+    (setf (walk-speed hero) (* 2 (walk-speed hero)))))
+
 
 (defmethod update :after ((hero hero) ticks)
   (with-slots (pos) hero
@@ -323,17 +343,39 @@
       (:scancode-down (setf (keys-down-down *keys-down*) nil)
                       (rem-walk-hero-down)))))
 
+(defun update-tweens (time)
+  (when *coffee-break-tween*
+    (run-tween *coffee-break-tween* time)
+    (when (tween-finished-p *coffee-break-tween* time)
+      (setf *coffee-break-tween* nil))))
+
+
+(defmethod update ((game (eql :game)) time)
+  (update *nance* time)
+
+  (update-tweens time)
+
+  (unless *coffee-break-tween*
+    (if (walking-p *nance*)
+        (decf (percent *cold-meter*) 0.0004)
+        (incf (percent *cold-meter*) 0.0005))))
+
 
 (defmethod render ((game (eql :game)) renderer)
+  ;; clear screen
   (sdl2:set-render-draw-color renderer 80 80 80 255)
   (sdl2:render-clear renderer)
+
+  ;; render characters
   (render *nance* renderer)
 
+  ;; render meters
   (sdl2:set-render-draw-blend-mode renderer sdl2-ffi:+sdl-blendmode-blend+)
   (render *money-meter* renderer)
   (render *stress-meter* renderer)
   (render *cold-meter* renderer)
 
+  ;; present
   (sdl2:render-present renderer))
 
 (defvar *harmony-initialized-p* nil)
@@ -380,11 +422,8 @@
           (:keyup (:keysym keysym)  (handle-keyup keysym))
 
           (:idle ()
+                 (update :game (sdl2:get-ticks))
                  (render :game renderer)
-                 ;; update sprites
-                 (update *nance* (sdl2:get-ticks))
-                 ;; update tweens
-                 ;; render
 
                  (sdl2:delay +frame-delay+))
 
