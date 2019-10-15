@@ -73,6 +73,9 @@
   (with-surface-from-file (surf +suit-sheet-image+)
     (setf *suit-texture* (sdl2:create-texture-from-surface renderer surf)))
 
+  (with-surface-from-file (surf +nomry-sheet-image+)
+    (setf *normy-texture* (sdl2:create-texture-from-surface renderer surf)))
+
   (unless *harmony-initialized-p*
     (harmony-simple:initialize)
     (setf *looking-up-track* (harmony-simple:play +things-look-up-track-path+ :music :loop t))
@@ -83,7 +86,10 @@
     (setf *harmony-initialized-p* t)))
 
 
-
+(defun free-assets ()
+  (sdl2:destroy-texture *nance-texture*)
+  (sdl2:destroy-texture *normy-texture*)
+  (sdl2:destroy-texture *suit-texture*))
 
 
 
