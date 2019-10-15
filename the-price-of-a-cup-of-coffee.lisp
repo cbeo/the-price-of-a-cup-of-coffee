@@ -80,6 +80,18 @@
                     :ease ease)))))
 
 
+(defun get-sick ()
+  (unless (sick-p *nance*)
+    (setf (sick-p *nance*) t)
+    (setf (walk-speed *nance*)
+          (round (* 0.5 (walk-speed *nance*))))))
+
+(defun get-better ()
+  (when (sick-p *nance*)
+    (setf (sick-p *nance*) nil)
+    (setf (walk-speed *nance*)
+          (round (* 2 (walk-speed *nance*))))))
+
 (def-normal-class human ()
   (walk-vec (cons 0 0))
   (walk-speed 6)
