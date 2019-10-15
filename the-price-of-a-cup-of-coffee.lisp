@@ -176,12 +176,11 @@
 
 
 (defun boot-up (renderer)
-  (with-surface-from-file (surf +nance-sheet-image+)
-    (setf *nance-texture*  (sdl2:create-texture-from-surface renderer surf)))
 
-  (with-surface-from-file (surf +suit-sheet-image+)
-    (setf *suit-texture* (sdl2:create-texture-from-surface renderer surf)))
 
+  (boot-up-assets renderer)
+
+  
   (setf *nance* (make-instance 'hero :sheet *nance-texture*)))
 
 
@@ -378,11 +377,6 @@
   ;; present
   (sdl2:render-present renderer))
 
-(defvar *harmony-initialized-p* nil)
-(defvar *cold-day-track*)
-(defvar *looking-up-track*)
-(defvar *current-track*)
-
 (defun play-track (track)
   (harmony-simple:stop *current-track*)
   (harmony-simple:resume track)
@@ -395,14 +389,6 @@
 
 
 (defun start ()
-
-  ;; (unless *harmony-initialized-p*
-  ;;   (harmony-simple:initialize)
-  ;;   (setf *looking-up-track* (harmony-simple:play #p"assets/thingslookup.mp3" :music :loop t))
-  ;;   (harmony-simple:stop *looking-up-track*)
-  ;;   (setf *cold-day-track* (harmony-simple:play #p"assets/coldday.mp3" :music :loop t))
-  ;;   (setf *current-track* *cold-day-track*)
-  ;;   (setf *harmony-initialized-p* t))
 
   ;; (play-track *cold-day-track*)
 
@@ -429,9 +415,6 @@
 
           (:quit ()
 ;                 (harmony-simple:stop *current-track*)
-                 (free-assets)
                  t))))))
 
-(defun free-assets ()
-  (setf (sheet *nance*) nil))
 

@@ -50,9 +50,39 @@
 
 (defparameter +nance-sheet-image+ "assets/Nance.png")
 (defparameter +suit-sheet-image+ "assets/Suit.png")
+(defparameter +nomry-sheet-image+ "assets/Normy.png")
+(defparameter +things-look-up-track-path+ #P"assets/thingslookup.mp3")
+(defparameter +cold-day-track-path+ #P"assets/coldday.mp3")
+
 
 (defvar *nance-texture*)
 (defvar *suit-texture*)
+(defvar *normy-texture*)
+
+(defvar *harmony-initialized-p* nil)
+(defvar *cold-day-track*)
+(defvar *looking-up-track*)
+(defvar *current-track*)
+
+
+
+(defun boot-up-assets (renderer)
+  (with-surface-from-file (surf +nance-sheet-image+)
+    (setf *nance-texture*  (sdl2:create-texture-from-surface renderer surf)))
+
+  (with-surface-from-file (surf +suit-sheet-image+)
+    (setf *suit-texture* (sdl2:create-texture-from-surface renderer surf)))
+
+  (unless *harmony-initialized-p*
+    (harmony-simple:initialize)
+    (setf *looking-up-track* (harmony-simple:play +things-look-up-track-path+ :music :loop t))
+    (harmony-simple:stop *looking-up-track*)
+    (setf *cold-day-track* (harmony-simple:play +cold-day-track-path+ :music :loop t))
+    (setf *current-track* *cold-day-track*)
+    (harmony-simple:stop *cold-day-track*)
+    (setf *harmony-initialized-p* t)))
+
+
 
 
 
