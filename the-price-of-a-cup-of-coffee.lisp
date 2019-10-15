@@ -170,19 +170,17 @@
   (generosity 0.25)
   (vulnerability 3))
 
-
-
 (defvar *nance*)
 
 
 (defun boot-up (renderer)
-
   (boot-up-assets renderer)
-  (setf *nance* (make-instance 'hero :sheet *nance-texture*)))
+  (setf *nance* (make-instance 'hero :sheet *nance-texture*))
+  (setf (sdl2:rect-x (pos *nance*))
+        (round (* 0.5 (- +window-width+ (sdl2:rect-width (pos *nance*)))))))
 
 
 (defparameter +frame-delay+ (round (/ 1000 60)))
-
 
 (defun action-key-pressed ()
   (print "Action"))
