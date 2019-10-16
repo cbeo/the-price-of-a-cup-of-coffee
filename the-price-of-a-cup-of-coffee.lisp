@@ -2,11 +2,9 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
-
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
 (defparameter +meter-bar-height+ 16)
-
 
 (defgeneric render (sprite renderer))
 (defgeneric update (thing time))
@@ -27,7 +25,6 @@
       (sdl2:render-fill-rect renderer filled-shape)
       (sdl2:set-render-draw-color renderer r g b 255)
       (sdl2:render-draw-rect renderer shape))))
-
 
 (defmethod (setf percent) :after (new-val (meter status-meter))
   (with-slots (filled-shape max-width percent) meter
@@ -66,6 +63,7 @@
                    :percent 0.0
                    :max-width width)))
 
+
 (defvar *coffee-break-tween* nil)
 (defun drink-coffee ()
   (let ((now (sdl2:get-ticks))
@@ -103,6 +101,12 @@
   (frame 0)
   (next-frame-at 0))
 
+(defun x-pos (person)
+  (sdl2:rect-x (pos person)))
+
+(defun y-pos (person)
+  (sdl2:rect-y (pos person)))
+
 (defun walking-p (human)
   (not (standing-p human)))
 
@@ -113,7 +117,7 @@
 
 (defmethod (setf walk-speed) :after (newval (human human))
   (setf (diag-walk-speed human)
-        (floor (sqrt (* 0.5 (* newval newval))))))
+        (round (sqrt (* 0.5 (* newval newval))))))
 
 (defun get-frame-rect (human)
   (with-slots (faces face frame) human
@@ -176,21 +180,67 @@
 
 (def-normal-class pedestrian (human)
   (comfort-rad 60)
-  (react-per-sec 1)
+  (react-per-sec 3)
+  (next-react 0)
   (anger 0.1)
   (kindness 0.02)
   (generosity 0.25)
-  (vulnerability 3))
+  (vulnerability 0.03))
+
+(defun set-walk-face-by-walk-vec (person)
+  (with-slots (walk-vec face) person
+    (cond
+      ((and (zerop (cdr walk-vec)) (plusp (car walk-vec)))
+       (setf face 'walking-right))
+
+      ((and (zerop (cdr walk-vec)) (minusp (car walk-vec)))
+       (setf face 'walking-left))
+
+      ((minusp (cdr walk-vec))  (setf face 'walking-up))
+
+      ((plusp (cdr walk-vec))  (setf face 'walking-down))
+
+      (t nil)))) ;; return nil if the character is standing
+
+(defun random-y-pos ()
+  (+ +vert-min+ (random (- +vert-max+ +vert-min+))))
+
+(defun make-suit ()
+  (let ((suit
+          (make-instance 'pedestrian
+                         :sheet *suit-texture*
+                         :comfort-rad 60
+                         :anger 0.1
+                         :kindness 0.015
+                         :generosity 0.5
+                         :vulnerability 0.01
+                         )))
+    (setf (walk-speed suit) 4)
+    (setf (walk-vec suit) (cons (walk-speed suit) 0))
+
+    (set-walk-face-by-walk-vec suit)
+    (setf (sdl2:rect-y (pos suit)) (random-y-pos))
+    suit))
 
 (defvar *nance*)
+(defvar *pedestrians* nil)
 
+(defvar *to-render-by-y* nil)
 
 (defun boot-up (renderer)
   (boot-up-assets renderer)
+
+  ;; boot up nance
   (setf *nance* (make-instance 'hero :sheet *nance-texture*))
   (setf (sdl2:rect-x (pos *nance*))
-        (round (* 0.5 (- +window-width+ (sdl2:rect-width (pos *nance*)))))))
+        (round (* 0.5 (- +window-width+ (sdl2:rect-width (pos *nance*))))))
 
+  (push *nance* *to-render-by-y*)
+
+  ;; boot up initial pedestrians
+  (setf *pedestrians* nil)
+  (push (make-suit) *pedestrians*)
+  (push (car *pedestrians*) *to-render-by-y*))
 
 (defparameter +frame-delay+ (round (/ 1000 60)))
 
@@ -355,11 +405,53 @@
     (when (tween-finished-p *coffee-break-tween* time)
       (setf *coffee-break-tween* nil))))
 
+(defun dist (person1 person2)
+  (let ((dx (- (x-pos person1) (x-pos person2)))
+        (dy (- (y-pos person1) (y-pos person2))))
+    (sqrt (+ (* dx dx) (* dy dy)))))
+
+(defun adjust-walk-relative-to (person1 person2)
+  (when (walking-p person1)
+    (with-slots (comfort-rad walk-vec walk-speed diag-walk-speed) person1
+      (if (< (dist person1 person2) comfort-rad)
+          ;;move-away
+          (match walk-vec
+            ((cons old-dx 0)
+             (setf (car walk-vec) (* (signum old-dx) diag-walk-speed))
+             (setf (cdr walk-vec) (* (signum (- (y-pos person1) (y-pos person2)))
+                                     diag-walk-speed))))
+          ;; try moving straigt across again
+          (match walk-vec
+            ((cons old-dx _)
+             (setf (car walk-vec) (* (signum old-dx) walk-speed))
+             (setf (cdr walk-vec) 0)))))
+    ;; update the displayd animation
+    (set-walk-face-by-walk-vec person1)))
+
+(defmethod update ((ped pedestrian) time)
+  (call-next-method)
+  (with-slots (pos react-per-sec next-react) ped
+    (when (<= next-react time)
+      ;; update react check
+      (setf next-react
+            (max time
+                 (round (+ next-react
+                           (/ 1000 react-per-sec)))))
+      (adjust-walk-relative-to ped *nance*))
+
+    (when (or (< (sdl2:rect-x pos) -50)
+              (< +window-width+ (sdl2:rect-x pos)))
+      (setf (sdl2:rect-y pos) (random-y-pos))
+      (setf (sdl2:rect-x pos) -49))))
+
 
 (defmethod update ((game (eql :game)) time)
   (update *nance* time)
 
   (update-tweens time)
+
+  (dolist (person *pedestrians*)
+    (update person time))
 
   (unless *coffee-break-tween*
     (if (walking-p *nance*)
@@ -367,13 +459,20 @@
         (incf (percent *cold-meter*) 0.0005))))
 
 
+
 (defmethod render ((game (eql :game)) renderer)
   ;; clear screen
   (sdl2:set-render-draw-color renderer 80 80 80 255)
   (sdl2:render-clear renderer)
 
+  (setf *to-render-by-y* (sort *to-render-by-y* #'< :key #'y-pos))
+
   ;; render characters
-  (render *nance* renderer)
+  ;;(render *nance* renderer)
+
+  ;; render pedestrians
+  (dolist (person *to-render-by-y*)
+    (render person renderer))
 
   ;; render meters
   (sdl2:set-render-draw-blend-mode renderer sdl2-ffi:+sdl-blendmode-blend+)
@@ -425,4 +524,10 @@
                       t)))))
     (free-assets)))
 
+
+(defun clear-pedestrians ()
+  (dolist (p *pedestrians*)
+    (setf *to-render-by-y*
+          (delete p *to-render-by-y*)))
+  (setf *pedestrians* nil))
 
