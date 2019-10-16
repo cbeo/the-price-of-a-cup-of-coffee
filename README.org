@@ -5,8 +5,9 @@
 
   + Design and Code by :: [[https://github.com/thegoofist/][The Goofist]] under the  [[./LICENSE][GNU Public License version 3]].
 
-  + Art by :: _Ct_ under a [[https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode][Attribution NonCommercial ShareAlike]] Creative Commons License.
+  + Art by :: _Ct_ under a [[https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode][Attribution Non-Commercial Share Alike]] Creative Commons License.
 
-  + Musics by :: [[https://github.com/gcentauri][gcentauri]] under a [[https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode][Attribution NonCommercial ShareAlike]] Creative Commons License.
+  + Musics by :: [[https://github.com/gcentauri][gcentauri]] under a [[https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode][Attribution Non-Commercial Share Alike]] Creative Commons License.
 
+  + Emoji by :: [[https://openmoji.org][OpenMoji]] under a [[https://creativecommons.org/licenses/by-sa/4.0/][Attribution Share Alike 4.0]] Creative Commons License
   
