@@ -16,7 +16,7 @@
 (defvar *tweens* nil)
 
 (defvar *expression-rect*
-  (sdl2:make-rect 0 0 64 64)
+  (sdl2:make-rect 0 0 50 50)
   "used to render expressions.")
 
 
@@ -172,7 +172,7 @@
         (sdl2:rect-x (pos human)))
   (setf (sdl2:rect-y *expression-rect*)
         (- (sdl2:rect-y (pos human))
-           48)))
+           (sdl2:rect-height *expression-rect*))))
 
 (defmethod render ((human human) renderer)
   (with-slots (pos sheet faces face frame expression) human
@@ -243,7 +243,7 @@
   (let ((suit
           (make-instance 'pedestrian
                          :sheet *suit-texture*
-                         :comfort-rad 60
+                         :comfort-rad 100
                          :anger 0.1
                          :kindness 0.015
                          :generosity 0.5
@@ -260,6 +260,10 @@
 
 
 (defun boot-up (renderer)
+  ;; cleanup from previous calls to start - used while testing
+  (setf *pedestrians* nil)
+  (setf *to-render-by-y* nil)
+
   (boot-up-assets renderer)
 
   ;; boot up nance
@@ -270,7 +274,6 @@
   (push *nance* *to-render-by-y*)
 
   ;; boot up initial pedestrians
-  (setf *pedestrians* nil)
   (push (make-suit) *pedestrians*)
   (push (car *pedestrians*) *to-render-by-y*))
 
@@ -452,7 +455,7 @@
           ;;move-away
           (match walk-vec
             ((cons old-dx 0)
-             (when (cointoss) (emote person1 "alarmed" 1000))
+             (when (cointoss 0.2) (emote person1 "alarmed" 1000))
              (setf (car walk-vec) (* (signum old-dx) diag-walk-speed))
              (setf (cdr walk-vec) (* (signum (- (y-pos person1) (y-pos person2)))
                                      diag-walk-speed))))
