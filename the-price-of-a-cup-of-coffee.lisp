@@ -16,7 +16,7 @@
 (defvar *tweens* nil)
 
 (defvar *expression-rect*
-  (sdl2:make-rect 0 0 32 32)
+  (sdl2:make-rect 0 0 64 64)
   "used to render expressions.")
 
 
@@ -172,7 +172,7 @@
         (sdl2:rect-x (pos human)))
   (setf (sdl2:rect-y *expression-rect*)
         (- (sdl2:rect-y (pos human))
-           36)))
+           48)))
 
 (defmethod render ((human human) renderer)
   (with-slots (pos sheet faces face frame expression) human
@@ -442,6 +442,9 @@
         (dy (- (y-pos person1) (y-pos person2))))
     (sqrt (+ (* dx dx) (* dy dy)))))
 
+(defun cointoss (&optional (loaded 0.5))
+  (< (random 1.0) loaded))
+
 (defun adjust-walk-relative-to (person1 person2)
   (when (walking-p person1)
     (with-slots (comfort-rad walk-vec walk-speed diag-walk-speed) person1
@@ -449,6 +452,7 @@
           ;;move-away
           (match walk-vec
             ((cons old-dx 0)
+             (when (cointoss) (emote person1 "alarmed" 1000))
              (setf (car walk-vec) (* (signum old-dx) diag-walk-speed))
              (setf (cdr walk-vec) (* (signum (- (y-pos person1) (y-pos person2)))
                                      diag-walk-speed))))
