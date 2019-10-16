@@ -5,6 +5,22 @@
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
 (defparameter +meter-bar-height+ 16)
+(defparameter +vert-min+ 16)
+(defparameter +vert-max+ (- +window-height+ 128 10))
+(defparameter +frame-delay+ (round (/ 1000 60)))
+
+(defvar *nance*)
+(defvar *pedestrians* nil)
+(defvar *to-render-by-y* nil)
+
+(defvar *tweens* nil)
+
+(defstruct keys-down left right up down action)
+(defvar *keys-down* (make-keys-down))
+
+(defvar *human-frame-pause* (/ 1000 4))
+(defun set-human-fps (n)
+  (setf *human-frame-pause* (/ 1000 n)))
 
 (defgeneric render (sprite renderer))
 (defgeneric update (thing time))
@@ -77,7 +93,6 @@
                     :start now :rounding nil :duration dur
                     :ease ease)))))
 
-
 (defun get-sick ()
   (unless (sick-p *nance*)
     (setf (sick-p *nance*) t)
@@ -132,12 +147,6 @@
                             (sdl2:rect-width rect)
                             (sdl2:rect-height rect))))))
 
-(defparameter +vert-min+ 16)
-(defparameter +vert-max+ (- +window-height+ 128 10))
-
-(defvar *human-frame-pause* (/ 1000 4))
-(defun set-human-fps (n)
-  (setf *human-frame-pause* (/ 1000 n)))
 
 
 (defmethod update ((human human) ticks)
@@ -222,10 +231,8 @@
     (setf (sdl2:rect-y (pos suit)) (random-y-pos))
     suit))
 
-(defvar *nance*)
-(defvar *pedestrians* nil)
 
-(defvar *to-render-by-y* nil)
+
 
 (defun boot-up (renderer)
   (boot-up-assets renderer)
@@ -242,7 +249,7 @@
   (push (make-suit) *pedestrians*)
   (push (car *pedestrians*) *to-render-by-y*))
 
-(defparameter +frame-delay+ (round (/ 1000 60)))
+
 
 (defun action-key-pressed ()
   (print "Action"))
@@ -349,8 +356,6 @@
     (setf (face *nance*) 'facing-down)
     (setf (frame *nance*) 0)))
 
-(defstruct keys-down left right up down action)
-(defvar *keys-down* (make-keys-down))
 
 (defun number-of-dpad-keys-down ()
    (let ((c 0))
