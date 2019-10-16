@@ -179,11 +179,11 @@
     (sdl2:render-copy renderer sheet
                       :dest-rect pos
                       :source-rect (get-frame-rect human))
-    (when expression
+    (let-when (source-rect (and expression (get-expression expression)))
       (set-expression-rect human)
       (sdl2:render-copy renderer *expression-texture*
                         :dest-rect *expression-rect*
-                        :source-rect (get-expression expression)))))
+                        :source-rect source-rect))))
 
 (defun emote (who emotion &optional duration)
   (setf (expression who) emotion)
@@ -450,12 +450,12 @@
 
 (defun adjust-walk-relative-to (person1 person2)
   (when (walking-p person1)
-    (with-slots (comfort-rad walk-vec walk-speed diag-walk-speed) person1
+    (with-slots (comfort-rad walk-vec walk-speed diag-walk-speed vulnerability) person1
       (if (< (dist person1 person2) comfort-rad)
           ;;move-away
           (match walk-vec
             ((cons old-dx 0)
-             (when (cointoss 0.2) (emote person1 "alarmed" 1000))
+             (when (cointoss (* 5 vulnerability)) (emote person1 "alarmed" 1000))
              (setf (car walk-vec) (* (signum old-dx) diag-walk-speed))
              (setf (cdr walk-vec) (* (signum (- (y-pos person1) (y-pos person2)))
                                      diag-walk-speed))))
