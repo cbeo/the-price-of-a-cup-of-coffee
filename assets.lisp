@@ -87,6 +87,7 @@
 
 
 (defun free-assets ()
+  (harmony-simple:stop *current-track*)
   (sdl2:destroy-texture *nance-texture*)
   (sdl2:destroy-texture *normy-texture*)
   (sdl2:destroy-texture *suit-texture*))
