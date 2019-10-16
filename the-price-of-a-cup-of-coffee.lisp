@@ -15,6 +15,11 @@
 
 (defvar *tweens* nil)
 
+(defvar *expression-rect*
+  (sdl2:make-rect 0 0 32 32)
+  "used to render expressions.")
+
+
 (defstruct keys-down left right up down action)
 (defvar *keys-down* (make-keys-down))
 
@@ -105,10 +110,12 @@
     (setf (walk-speed *nance*)
           (round (* 2 (walk-speed *nance*))))))
 
+
 (def-normal-class human ()
   (walk-vec (cons 0 0))
   (walk-speed 6)
   diag-walk-speed
+  expression       ;; nil or a string
   pos
   sheet
   (faces ((lambda () +shared-faces+)))
@@ -160,12 +167,30 @@
       (setf frame (mod (1+ frame) (length (funcall face faces)))))))
 
 
+(defun set-expression-rect (human)
+  (setf (sdl2:rect-x *expression-rect*)
+        (sdl2:rect-x (pos human)))
+  (setf (sdl2:rect-y *expression-rect*)
+        (- (sdl2:rect-y (pos human))
+           36)))
+
 (defmethod render ((human human) renderer)
-  (with-slots (pos sheet faces face frame) human
+  (with-slots (pos sheet faces face frame expression) human
     (sdl2:render-copy renderer sheet
                       :dest-rect pos
-                      :source-rect (get-frame-rect human))))
+                      :source-rect (get-frame-rect human))
+    (when expression
+      (set-expression-rect human)
+      (sdl2:render-copy renderer *expression-texture*
+                        :dest-rect *expression-rect*
+                        :source-rect (get-expression expression)))))
 
+(defun emote (who emotion &optional duration)
+  (setf (expression who) emotion)
+  (when duration
+    (let ((pause (pause duration (sdl2:get-ticks))))
+      (setf (on-complete pause) (lambda () (setf (expression who) nil)))
+      (push pause *tweens*))))
 
 (def-normal-class hero (human)
   (sick-p nil))
@@ -405,10 +430,12 @@
                       (rem-walk-hero-down)))))
 
 (defun update-tweens (time)
-  (when *coffee-break-tween*
-    (run-tween *coffee-break-tween* time)
-    (when (tween-finished-p *coffee-break-tween* time)
-      (setf *coffee-break-tween* nil))))
+  (dolist (tween *tweens*)
+    (run-tween tween time))
+  (setf *tweens*
+        (delete-if ($ #'tween-finished-p _ time)
+                   *tweens*)))
+
 
 (defun dist (person1 person2)
   (let ((dx (- (x-pos person1) (x-pos person2)))
@@ -470,12 +497,9 @@
   (sdl2:set-render-draw-color renderer 80 80 80 255)
   (sdl2:render-clear renderer)
 
-  (setf *to-render-by-y* (sort *to-render-by-y* #'< :key #'y-pos))
-
-  ;; render characters
-  ;;(render *nance* renderer)
-
-  ;; render pedestrians
+  ;; render characters and other objects
+  (setf *to-render-by-y*
+        (sort *to-render-by-y* #'< :key #'y-pos))
   (dolist (person *to-render-by-y*)
     (render person renderer))
 
