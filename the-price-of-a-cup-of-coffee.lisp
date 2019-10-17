@@ -220,7 +220,18 @@
 (defmethod update :after ((hero hero) ticks)
   (with-slots (pos) hero
     (setf (sdl2:rect-x pos)
-          (mod (sdl2:rect-x pos) +window-width+))))
+          (mod (sdl2:rect-x pos) +window-width+))
+    (if (and (<= +sliding-door-closed-x+
+                 (sdl2:rect-x pos)
+                 (+ +sliding-door-closed-x+
+                    (sdl2:rect-width *sliding-door-position*)))
+             (<= (sdl2:rect-y pos) (+ +vert-min+ 40)))
+        (when (not *door-open-p*)
+          (open-door))
+        (when *door-open-p*
+          (close-door)))))
+
+
 
 (def-normal-class pedestrian (human)
   (comfort-rad 60)
@@ -585,3 +596,27 @@
     (setf *to-render-by-y*
           (delete p *to-render-by-y*)))
   (setf *pedestrians* nil))
+
+
+(defvar *door-open-p* nil)
+
+(defun open-door ()
+  (unless *door-open-p*
+    (setf *door-open-p* t)
+    (push (animate *sliding-door-position* 'sdl2:rect-x +sliding-door-open-x+
+                   :start (sdl2:get-ticks)
+                   :ease #'animise:cubic-in-out
+                   :duration 500)
+          *tweens*)))
+
+(defun close-door ()
+  (when *door-open-p*
+    (setf *door-open-p* nil)
+    (push (animate *sliding-door-position* 'sdl2:rect-x +sliding-door-closed-x+
+                   :start (sdl2:get-ticks)
+                   :ease #'animise:cubic-in-out
+                   :duration 500)
+          *tweens*)))
+
+
+

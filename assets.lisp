@@ -107,7 +107,11 @@
 (defvar *expression-texture*)
 (defvar *backdrop-texture*)
 (defvar *sliding-door-texture*)
-(defvar *sliding-door-position* (sdl2:make-rect 800 8 104 138))
+
+(defparameter +sliding-door-open-x+ 800)
+(defparameter +sliding-door-closed-x+ 868)
+(defvar *sliding-door-position*
+  (sdl2:make-rect +sliding-door-closed-x+ 8 104 138))
 
 (defvar *harmony-initialized-p* nil)
 (defvar *cold-day-track*)
