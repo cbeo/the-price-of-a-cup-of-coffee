@@ -12,6 +12,7 @@
 (defvar *nance*)
 (defvar *pedestrians* nil)
 (defvar *to-render-by-y* nil)
+(defvar *on-coffee-break* nil)
 
 (defvar *tweens* nil)
 
@@ -32,20 +33,30 @@
 
 (def-normal-class status-meter ()
   (color (list 0 0 0 255))
+  (decoration "stressed")
   shape
   filled-shape
   max-width
   percent)
 
+(defvar *status-meter-decoration-rect* (sdl2:make-rect 0 0 48 48))
+
 (defmethod render ((meter status-meter) renderer)
-  (with-slots (color shape filled-shape) meter
+  (with-slots (color shape filled-shape decoration) meter
     (destructuring-bind (r g b a) color
       (sdl2:set-render-draw-color renderer r g b 100)
       (sdl2:render-fill-rect renderer shape)
       (sdl2:set-render-draw-color renderer r g b a)
       (sdl2:render-fill-rect renderer filled-shape)
       (sdl2:set-render-draw-color renderer r g b 255)
-      (sdl2:render-draw-rect renderer shape))))
+      (sdl2:render-draw-rect renderer shape))
+    (setf (sdl2:rect-x *status-meter-decoration-rect*)
+          (+ -28 (sdl2:rect-x shape) (sdl2:rect-width shape)))
+    (setf (sdl2:rect-y *status-meter-decoration-rect*)
+          (+ -12 (sdl2:rect-y shape)))
+    (sdl2:render-copy renderer *expression-texture*
+                      :source-rect (get-expression decoration)
+                      :dest-rect *status-meter-decoration-rect*)))
 
 (defmethod (setf percent) :after (new-val (meter status-meter))
   (with-slots (filled-shape max-width percent) meter
@@ -60,6 +71,7 @@
   (defvar *money-meter*
     (make-instance 'status-meter
                    :color (list 0 200 50 200)
+                   :decoration "dollars"
                    :filled-shape (sdl2:make-rect padding padding 1 +meter-bar-height+)
                    :shape (sdl2:make-rect padding padding double-width +meter-bar-height+)
                    :percent 0.0
@@ -68,9 +80,9 @@
   (defvar *stress-meter*
     (make-instance 'status-meter
                    :color (list 200 20 20 200)
+                   :decoration "stressed"
                    :filled-shape (sdl2:make-rect (+ padding (* 3 measure)) padding
                                                  1 +meter-bar-height+)
-
                    :shape (sdl2:make-rect (+ padding (* 3 measure)) padding
                                           width +meter-bar-height+)
                    :percent 0.0
@@ -78,25 +90,24 @@
 
   (defvar *cold-meter*
     (make-instance 'status-meter
-                   :color (list 0 40 204 200)
+                   :color (list 0 140 240 200)
                    :filled-shape (sdl2:make-rect (+ padding (* 4 measure)) padding 1 +meter-bar-height+)
                    :shape (sdl2:make-rect (+ padding (* 4 measure)) padding width +meter-bar-height+)
                    :percent 0.0
                    :max-width width)))
 
-
-(defvar *coffee-break-tween* nil)
-(defun drink-coffee ()
-  (let ((now (sdl2:get-ticks))
-        (dur 1750)
-        (ease #'cubic-in-out))
-    (setf *coffee-break-tween*
-          (as-group
-           (animate *cold-meter* 'percent 0.0 :start now :rounding nil :duration dur
-                    :ease ease)
-           (animate *stress-meter* 'percent (* 0.4 (percent *stress-meter*))
-                    :start now :rounding nil :duration dur
-                    :ease ease)))))
+;; TODO - REIMPLEMENT TO WORK WITH *TWEENS*
+;; (defun drink-coffee ()
+;;   (let ((now (sdl2:get-ticks))
+;;         (dur 1750)
+;;         (ease #'cubic-in-out))
+;;     (setf *coffee-break-tween*
+;;           (as-group
+;;            (animate *cold-meter* 'percent 0.0 :start now :rounding nil :duration dur
+;;                     :ease ease)
+;;            (animate *stress-meter* 'percent (* 0.4 (percent *stress-meter*))
+;;                     :start now :rounding nil :duration dur
+;;                     :ease ease)))))
 
 (defun get-sick ()
   (unless (sick-p *nance*)
@@ -214,7 +225,7 @@
 
 (def-normal-class pedestrian (human)
   (comfort-rad 60)
-  (react-per-sec 3)
+  (react-per-sec 4)
   (next-react 0)
   (anger 0.1)
   (kindness 0.02)
@@ -243,13 +254,13 @@
   (let ((suit
           (make-instance 'pedestrian
                          :sheet *suit-texture*
-                         :comfort-rad 100
+                         :comfort-rad 120
                          :anger 0.1
                          :kindness 0.015
                          :generosity 0.5
-                         :vulnerability 0.01
+                         :vulnerability 0.07
                          )))
-    (setf (walk-speed suit) 4)
+    (setf (walk-speed suit) 5)
     (setf (walk-vec suit) (cons (walk-speed suit) 0))
 
     (set-walk-face-by-walk-vec suit)
@@ -276,7 +287,6 @@
   ;; boot up initial pedestrians
   (push (make-suit) *pedestrians*)
   (push (car *pedestrians*) *to-render-by-y*))
-
 
 
 (defun action-key-pressed ()
@@ -492,10 +502,11 @@
   (dolist (person *pedestrians*)
     (update person time))
 
-  (unless *coffee-break-tween*
+  (unless *on-coffee-break*
     (if (walking-p *nance*)
         (decf (percent *cold-meter*) 0.0004)
         (incf (percent *cold-meter*) 0.0005))))
+
 
 
 
@@ -533,7 +544,7 @@
 (defun start ()
 
   ;; (play-track *cold-day-track*)
-  (unwind-protect 
+  (unwind-protect
        (sdl2:with-init (:everything)
          (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
            (sdl2:with-renderer (renderer win :flags '(:accelerated))
@@ -557,4 +568,3 @@
     (setf *to-render-by-y*
           (delete p *to-render-by-y*)))
   (setf *pedestrians* nil))
-
