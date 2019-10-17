@@ -5,7 +5,7 @@
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
 (defparameter +meter-bar-height+ 16)
-(defparameter +vert-min+ 24)
+(defparameter +vert-min+ 32)
 (defparameter +vert-max+ (- +window-height+ 128 30))
 (defparameter +frame-delay+ (round (/ 1000 60)))
 
@@ -51,7 +51,7 @@
       (sdl2:set-render-draw-color renderer r g b 255)
       (sdl2:render-draw-rect renderer shape))
     (setf (sdl2:rect-x *status-meter-decoration-rect*)
-          (+ -28 (sdl2:rect-x shape) (sdl2:rect-width shape)))
+          (+ -32 (sdl2:rect-x shape) (sdl2:rect-width shape)))
     (setf (sdl2:rect-y *status-meter-decoration-rect*)
           (+ -12 (sdl2:rect-y shape)))
     (sdl2:render-copy renderer *expression-texture*
@@ -64,6 +64,7 @@
     (setf (sdl2:rect-width filled-shape) (round (* max-width percent)))))
 
 (let* ((padding 8)
+       (y (- +window-height+ +meter-bar-height+ padding))
        (measure (round (/ +window-width+ 5)))
        (width (- measure (* 2 padding)))
        (double-width (- (* 2 measure) (* 2 padding))))
@@ -72,8 +73,8 @@
     (make-instance 'status-meter
                    :color (list 0 200 50 200)
                    :decoration "dollars"
-                   :filled-shape (sdl2:make-rect padding padding 1 +meter-bar-height+)
-                   :shape (sdl2:make-rect padding padding double-width +meter-bar-height+)
+                   :filled-shape (sdl2:make-rect padding y 1 +meter-bar-height+)
+                   :shape (sdl2:make-rect padding y double-width +meter-bar-height+)
                    :percent 0.0
                    :max-width double-width))
 
@@ -81,9 +82,9 @@
     (make-instance 'status-meter
                    :color (list 200 20 20 200)
                    :decoration "stressed"
-                   :filled-shape (sdl2:make-rect (+ padding (* 3 measure)) padding
+                   :filled-shape (sdl2:make-rect (+ padding (* 3 measure)) y
                                                  1 +meter-bar-height+)
-                   :shape (sdl2:make-rect (+ padding (* 3 measure)) padding
+                   :shape (sdl2:make-rect (+ padding (* 3 measure)) y
                                           width +meter-bar-height+)
                    :percent 0.0
                    :max-width width))
@@ -92,8 +93,8 @@
     (make-instance 'status-meter
                    :color (list 0 140 240 200)
                    :decoration "cold"
-                   :filled-shape (sdl2:make-rect (+ padding (* 4 measure)) padding 1 +meter-bar-height+)
-                   :shape (sdl2:make-rect (+ padding (* 4 measure)) padding width +meter-bar-height+)
+                   :filled-shape (sdl2:make-rect (+ padding (* 4 measure)) y 1 +meter-bar-height+)
+                   :shape (sdl2:make-rect (+ padding (* 4 measure)) y width +meter-bar-height+)
                    :percent 0.0
                    :max-width width)))
 
@@ -217,21 +218,24 @@
     (setf (sick-p hero) nil)
     (setf (walk-speed hero) (* 2 (walk-speed hero)))))
 
+
+(defun in-front-of-door-p ()
+  (with-slots (pos) *nance*
+    (and (<= +sliding-door-closed-x+
+             (sdl2:rect-x pos)
+             (+ +sliding-door-closed-x+
+                (sdl2:rect-width *sliding-door-position*)))
+         (<= (sdl2:rect-y pos) (+ +vert-min+ 40)))))
+
 (defmethod update :after ((hero hero) ticks)
   (with-slots (pos) hero
     (setf (sdl2:rect-x pos)
           (mod (sdl2:rect-x pos) +window-width+))
-    (if (and (<= +sliding-door-closed-x+
-                 (sdl2:rect-x pos)
-                 (+ +sliding-door-closed-x+
-                    (sdl2:rect-width *sliding-door-position*)))
-             (<= (sdl2:rect-y pos) (+ +vert-min+ 40)))
+    (if (in-front-of-door-p)
         (when (not *door-open-p*)
           (open-door))
         (when *door-open-p*
           (close-door)))))
-
-
 
 (def-normal-class pedestrian (human)
   (comfort-rad 60)
