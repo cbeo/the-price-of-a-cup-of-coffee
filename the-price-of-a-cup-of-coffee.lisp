@@ -5,8 +5,8 @@
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
 (defparameter +meter-bar-height+ 16)
-(defparameter +vert-min+ 16)
-(defparameter +vert-max+ (- +window-height+ 128 10))
+(defparameter +vert-min+ 24)
+(defparameter +vert-max+ (- +window-height+ 128 30))
 (defparameter +frame-delay+ (round (/ 1000 60)))
 
 (defvar *nance*)
@@ -91,6 +91,7 @@
   (defvar *cold-meter*
     (make-instance 'status-meter
                    :color (list 0 140 240 200)
+                   :decoration "cold"
                    :filled-shape (sdl2:make-rect (+ padding (* 4 measure)) padding 1 +meter-bar-height+)
                    :shape (sdl2:make-rect (+ padding (* 4 measure)) padding width +meter-bar-height+)
                    :percent 0.0
@@ -216,12 +217,10 @@
     (setf (sick-p hero) nil)
     (setf (walk-speed hero) (* 2 (walk-speed hero)))))
 
-
 (defmethod update :after ((hero hero) ticks)
   (with-slots (pos) hero
     (setf (sdl2:rect-x pos)
           (mod (sdl2:rect-x pos) +window-width+))))
-
 
 (def-normal-class pedestrian (human)
   (comfort-rad 60)
@@ -268,8 +267,6 @@
     suit))
 
 
-
-
 (defun boot-up (renderer)
   ;; cleanup from previous calls to start - used while testing
   (setf *pedestrians* nil)
@@ -289,8 +286,23 @@
   (push (car *pedestrians*) *to-render-by-y*))
 
 
+(defun stop-and-consider (pedestrian))
+  ;; (with-slots (walk-vec expression anger kindness generosity vulnerability) pedestrian
+  ;;   (incf (percent *stress-meter*) vulnerability)
+  ;;   (let ((old-vec (copy-list walk-vec)))
+  ;;     (setf (car walk-vec) 0)
+  ;;     (setf (cdr walk-vec) 0)
+  ;;     (cond
+  ;;       ((cointoss anger) (emote pedestrian "angry")
+
 (defun action-key-pressed ()
-  (print "Action"))
+  (let-if (mark (find-if (lambda (ped)
+                           (< (dist ped *nance*)
+                              (* 0.5 (comfort-rad ped))))
+                         *pedestrians*))
+          (stop-and-consider mark)
+          (incf (percent *stress-meter*) 0.01)))
+
 
 (defun any-p (arg &rest preds)
   (and preds
@@ -430,6 +442,7 @@
 (defun handle-keyup (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (match-key key
+      (:scancode-space (setf (keys-down-action *keys-down*) nil))
       (:scancode-left (setf (keys-down-left *keys-down*) nil)
                       (rem-walk-hero-left))
 
@@ -514,6 +527,10 @@
   ;; clear screen
   (sdl2:set-render-draw-color renderer 80 80 80 255)
   (sdl2:render-clear renderer)
+
+  (sdl2:render-copy renderer *backdrop-texture*)
+  (sdl2:render-copy renderer *sliding-door-texture*
+                    :dest-rect *sliding-door-position*)
 
   ;; render characters and other objects
   (setf *to-render-by-y*

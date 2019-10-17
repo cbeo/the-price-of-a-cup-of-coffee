@@ -98,11 +98,16 @@
 (defparameter +things-look-up-track-path+ #P"assets/thingslookup.mp3")
 (defparameter +cold-day-track-path+ #P"assets/coldday.mp3")
 (defparameter +emoji-sheet-image+ #P"assets/emoji.png")
+(defparameter +sliding-door-image+ #P"assets/sliding-door.png")
+(defparameter +backdrop-image+ #P"assets/backdrop.png")
 
 (defvar *nance-texture*)
 (defvar *suit-texture*)
 (defvar *normy-texture*)
 (defvar *expression-texture*)
+(defvar *backdrop-texture*)
+(defvar *sliding-door-texture*)
+(defvar *sliding-door-position* (sdl2:make-rect 800 8 104 138))
 
 (defvar *harmony-initialized-p* nil)
 (defvar *cold-day-track*)
@@ -121,6 +126,12 @@
 
   (with-surface-from-file (surf +emoji-sheet-image+)
     (setf *expression-texture* (sdl2:create-texture-from-surface renderer surf)))
+
+  (with-surface-from-file (surf +sliding-door-image+)
+    (setf *sliding-door-texture* (sdl2:create-texture-from-surface renderer surf)))
+
+  (with-surface-from-file (surf +backdrop-image+)
+    (setf *backdrop-texture* (sdl2:create-texture-from-surface renderer surf)))
 
   (unless *harmony-initialized-p*
     (harmony-simple:initialize)
