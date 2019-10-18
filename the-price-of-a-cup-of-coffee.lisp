@@ -325,6 +325,7 @@
                            (cond
                              ((cointoss anger)
                               (emote pedestrian (choose-one "asshole" "very-angry" "death") 2500)
+                              (hopping-mad pedestrian)
                               (emote *nance* (choose-one "stressed" "breakdown") 3000)
                               (incf (percent *stress-meter*) (* 3 vulnerability)))
                              ((cointoss kindness)
@@ -657,5 +658,18 @@
                    :duration 500)
           *tweens*)))
 
-
-
+;; TODO FIX STRANGE BUG IN FINITE LOOPING BEHAVIOR IN ANIMISE
+(defun hopping-mad (who)
+  (with-slots (pos) who
+    (let* ((current-y (sdl2:rect-y pos))
+           (dest-y (- current-y 56))
+           (anim
+             (sequencing (:at (sdl2:get-ticks) :targeting pos)
+               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
+               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
+               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
+               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
+               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
+               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
+               )))
+      (push anim *tweens*))))
