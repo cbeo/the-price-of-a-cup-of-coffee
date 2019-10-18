@@ -417,14 +417,16 @@
                   (cdr vec))))
     (push pause *tweens*)))
 
+(defparameter +coffee-cost+ 0.55)
+
 (defun enough-for-coffee-p ()
-  (<= 0.45 (percent *money-meter*)))
+  (<= +coffee-cost+ (percent *money-meter*)))
 
 (defun enough-for-food-p ()
   (<= 1.0 (percent *money-meter*)))
 
 (defun get-coffee! ()
-  (decf (percent *money-meter*) 0.45)
+  (decf (percent *money-meter*) +coffee-cost+)
   (play-track *looking-up-track*)
   (emote *nance* "coffee")
   (setf *collision-on-p* nil)
@@ -441,7 +443,6 @@
        (setf *collision-on-p* t)
        (setf *on-coffee-break* nil)))))
 
-  (print "Getting Coffee!!!"))
 
 (defun get-food! ()
   (print "Getting Food!!!"))
