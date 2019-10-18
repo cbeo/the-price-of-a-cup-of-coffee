@@ -194,6 +194,8 @@
                       :source-rect (get-frame-rect human))
     (let-when (source-rect (and expression (get-expression expression)))
       (set-expression-rect human)
+      (sdl2:render-copy renderer *speech-bubble-texture*
+                        :dest-rect *expression-rect*)
       (sdl2:render-copy renderer *expression-texture*
                         :dest-rect *expression-rect*
                         :source-rect source-rect))))
@@ -293,7 +295,6 @@
   (setf *nance* (make-instance 'hero :sheet *nance-texture*))
   (setf (sdl2:rect-x (pos *nance*)) 292)
   (setf (sdl2:rect-y (pos *nance*)) 38)
-
 
   (push *nance* *to-render-by-y*)
 

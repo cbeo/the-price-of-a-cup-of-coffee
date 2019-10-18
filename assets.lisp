@@ -93,15 +93,17 @@
 
 
 
-(defparameter +nance-sheet-image+ "assets/Nance.png")
-(defparameter +suit-sheet-image+ "assets/Suit.png")
-(defparameter +nomry-sheet-image+ "assets/Normy.png")
-(defparameter +kid-sheet-image+ "assets/KidSheet.png")
+(defparameter +nance-sheet-image+ #P"assets/Nance.png")
+(defparameter +suit-sheet-image+ #P"assets/Suit.png")
+(defparameter +nomry-sheet-image+ #P"assets/Normy.png")
+(defparameter +kid-sheet-image+ #P"assets/KidSheet.png")
 (defparameter +things-look-up-track-path+ #P"assets/thingslookup.mp3")
 (defparameter +cold-day-track-path+ #P"assets/coldday.mp3")
 (defparameter +emoji-sheet-image+ #P"assets/emoji.png")
 (defparameter +sliding-door-image+ #P"assets/sliding-door.png")
 (defparameter +backdrop-image+ #P"assets/backdrop.png")
+(defparameter +speechbubble-image+ #P"assets/Speechbubble.png")
+
 
 (defvar *nance-texture*)
 (defvar *suit-texture*)
@@ -110,6 +112,7 @@
 (defvar *expression-texture*)
 (defvar *backdrop-texture*)
 (defvar *sliding-door-texture*)
+(defvar *speech-bubble-texture*)
 
 (defparameter +sliding-door-open-x+ 800)
 (defparameter +sliding-door-closed-x+ 868)
@@ -140,6 +143,7 @@
 
   (setf *backdrop-texture* (make-texture-from-file renderer  +backdrop-image+))
 
+  (setf *speech-bubble-texture* (make-texture-from-file renderer +speechbubble-image+))
 
 
   (unless *harmony-initialized-p*
