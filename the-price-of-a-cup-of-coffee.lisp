@@ -649,7 +649,10 @@
     (if (walking-p *nance*)
         (unless (sick-p *nance*)
           (decf (percent *cold-meter*) 0.0004))
-        (incf (percent *cold-meter*) 0.0003))))
+        (progn
+         (incf (percent *cold-meter*) 0.0003)
+         (unless (sick-p *nance*)
+           (decf (percent *stress-meter*) 0.0003))))))
 
 
 
