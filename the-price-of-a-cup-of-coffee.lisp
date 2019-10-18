@@ -148,6 +148,9 @@
   (frame 0)
   (next-frame-at 0))
 
+(defmethod (setf face) :after (new-val (human human))
+  (setf (frame human) 0))
+
 (defun x-pos (person)
   (sdl2:rect-x (pos person)))
 
@@ -223,7 +226,7 @@
   (sick-p nil))
 
 
-(defvar *sickness-rect* (sdl2:make-rect 0 0 16 16))
+(defvar *sickness-rect* (sdl2:make-rect 0 0 32 32))
 
 (defmethod render :after ((nance hero) renderer)
   (when (sick-p nance)
@@ -247,7 +250,7 @@
     (setf (walk-speed *nance*) (* 2 (walk-speed *nance*)))))
 
 (defun sickness-check ()
-  (if (>= (percent *cold-meter*) 0.9)
+  (if (cointoss (percent *cold-meter*))
       (when (and (not (sick-p *nance*))
                  (cointoss (percent *stress-meter*)))
         (make-sick))
@@ -257,7 +260,7 @@
 
 (defun check-sickness-loop ()
   (sickness-check)
-  (pause-then 1000 #'check-sickness-loop))
+  (pause-then 3000 #'check-sickness-loop))
 
 (defvar *collision-on-p* t)
 (defvar *input-mode* :normal) ;; (or :normal :start nil)
@@ -346,7 +349,7 @@
     (setf (sdl2:rect-y (pos suit)) (random-y-pos))
     suit))
 
-(defparameter +home-base-y+ 38)
+(defparameter +home-base-y+ 36)
 (defparameter +home-base-x+ 292)
 
 (defun boot-up (renderer)
@@ -358,10 +361,12 @@
 
   ;; boot up nance
   (setf *nance* (make-instance 'hero :sheet *nance-texture*))
-  (setf (sdl2:rect-x (pos *nance*)) 292)
-  (setf (sdl2:rect-y (pos *nance*)) 38)
+  (setf (sdl2:rect-x (pos *nance*)) +home-base-x+)
+  (setf (sdl2:rect-y (pos *nance*)) +home-base-y+)
 
   (push *nance* *to-render-by-y*)
+
+  (check-sickness-loop)
 
   ;; boot up initial pedestrians
   (push (make-suit) *pedestrians*)
@@ -379,7 +384,7 @@
 
 (defun stop-and-consider (pedestrian)
   (with-slots (walk-vec already-asked expression anger kindness generosity vulnerability) pedestrian
-    (incf (percent *stress-meter*) vulnerability)
+
     (setf already-asked t)
     (when (walking-p pedestrian)
       (let ((old-vec (copy-list walk-vec)))
@@ -393,12 +398,14 @@
                               (emote pedestrian (choose-one "asshole" "very-angry" "death") 2500)
                               (hopping-mad pedestrian)
                               (emote *nance* (choose-one "stressed" "breakdown") 3000)
-                              (incf (percent *stress-meter*) (* 3 vulnerability)))
+                              (incf (percent *stress-meter*) (* 4 vulnerability)))
                              ((cointoss kindness)
                               (emote pedestrian (choose-one "relaxed" "heart1" "heart2" "heart3" "angry") 2500)
                               (emote *nance* (choose-one "relaxed" "heart1" "heart2" "heart3") 2000)
                               (incf (percent *money-meter*) (random generosity)))
-                             (t (emote pedestrian (choose-one "sorry-no" "neutral") 2500)))
+                             (t
+                              (incf (percent *stress-meter*) vulnerability)
+                              (emote pedestrian (choose-one "sorry-no" "neutral") 2500)))
                            (resume-walking pedestrian old-vec 800)))))))
 
 (defun resume-walking (person vec after)
@@ -640,7 +647,8 @@
 
   (unless *on-coffee-break*
     (if (walking-p *nance*)
-        (decf (percent *cold-meter*) 0.0004)
+        (unless (sick-p *nance*)
+          (decf (percent *cold-meter*) 0.0004))
         (incf (percent *cold-meter*) 0.0003))))
 
 
