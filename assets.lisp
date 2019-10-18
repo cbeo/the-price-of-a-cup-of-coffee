@@ -96,6 +96,7 @@
 (defparameter +nance-sheet-image+ "assets/Nance.png")
 (defparameter +suit-sheet-image+ "assets/Suit.png")
 (defparameter +nomry-sheet-image+ "assets/Normy.png")
+(defparameter +kid-sheet-image+ "assets/KidSheet.png")
 (defparameter +things-look-up-track-path+ #P"assets/thingslookup.mp3")
 (defparameter +cold-day-track-path+ #P"assets/coldday.mp3")
 (defparameter +emoji-sheet-image+ #P"assets/emoji.png")
@@ -105,6 +106,7 @@
 (defvar *nance-texture*)
 (defvar *suit-texture*)
 (defvar *normy-texture*)
+(defvar *kid-texture*)
 (defvar *expression-texture*)
 (defvar *backdrop-texture*)
 (defvar *sliding-door-texture*)
@@ -119,24 +121,26 @@
 (defvar *looking-up-track*)
 (defvar *current-track*)
 
+(defun make-texture-from-file (renderer filepath)
+  (with-surface-from-file (surf filepath)
+    (sdl2:create-texture-from-surface renderer surf)))
+
 (defun boot-up-assets (renderer)
-  (with-surface-from-file (surf +nance-sheet-image+)
-    (setf *nance-texture*  (sdl2:create-texture-from-surface renderer surf)))
+  (setf *nance-texture* (make-texture-from-file renderer  +nance-sheet-image+))
 
-  (with-surface-from-file (surf +suit-sheet-image+)
-    (setf *suit-texture* (sdl2:create-texture-from-surface renderer surf)))
+  (setf *suit-texture* (make-texture-from-file renderer  +suit-sheet-image+))
 
-  (with-surface-from-file (surf +nomry-sheet-image+)
-    (setf *normy-texture* (sdl2:create-texture-from-surface renderer surf)))
+  (setf *normy-texture* (make-texture-from-file renderer  +nomry-sheet-image+))
 
-  (with-surface-from-file (surf +emoji-sheet-image+)
-    (setf *expression-texture* (sdl2:create-texture-from-surface renderer surf)))
+  (setf *kid-texture* (make-texture-from-file renderer +kid-sheet-image+))
 
-  (with-surface-from-file (surf +sliding-door-image+)
-    (setf *sliding-door-texture* (sdl2:create-texture-from-surface renderer surf)))
+  (setf *expression-texture* (make-texture-from-file renderer  +emoji-sheet-image+))
 
-  (with-surface-from-file (surf +backdrop-image+)
-    (setf *backdrop-texture* (sdl2:create-texture-from-surface renderer surf)))
+  (setf *sliding-door-texture* (make-texture-from-file renderer  +sliding-door-image+))
+
+  (setf *backdrop-texture* (make-texture-from-file renderer  +backdrop-image+))
+
+
 
   (unless *harmony-initialized-p*
     (harmony-simple:initialize)
