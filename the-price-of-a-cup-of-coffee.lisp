@@ -218,6 +218,17 @@
 (def-normal-class hero (human)
   (sick-p nil))
 
+
+(defvar *sickness-rect* (sdl2:make-rect 0 0 16 16))
+
+(defmethod render :after ((nance hero) renderer)
+  (when (sick-p nance)
+    (setf (sdl2:rect-x *sickness-rect*) (- (x-pos nance) 20))
+    (setf (sdl2:rect-y *sickness-rect*) (- (y-pos nance) 20))
+    (sdl2:render-copy renderer *expression-texture*
+                      :source-rect (get-expression "nauseated")
+                      :dest-rect *sickness-rect*)))
+
 (defun make-sick (hero)
   (unless (sick-p hero)
     (setf (sick-p hero) t)
@@ -248,6 +259,7 @@
           (close-door)))))
 
 (def-normal-class pedestrian (human)
+  (already-asked nil)
   (comfort-rad 60)
   (react-per-sec 4)
   (next-react 0)
@@ -321,8 +333,9 @@
 
 
 (defun stop-and-consider (pedestrian)
-  (with-slots (walk-vec expression anger kindness generosity vulnerability) pedestrian
+  (with-slots (walk-vec already-asked expression anger kindness generosity vulnerability) pedestrian
     (incf (percent *stress-meter*) vulnerability)
+    (setf already-asked t)
     (when (walking-p pedestrian)
       (let ((old-vec (copy-list walk-vec)))
         (setf (car walk-vec) 0)
@@ -355,8 +368,9 @@
 
 (defun action-key-pressed ()
   (let-if (mark (find-if (lambda (ped)
-                           (< (dist ped *nance*)
-                              (* 0.75 (comfort-rad ped))))
+                           (and (not (already-asked ped))
+                                (< (dist ped *nance*)
+                                   (* 0.75 (comfort-rad ped)))))
                          *pedestrians*))
           (stop-and-consider mark)))
 
@@ -562,6 +576,7 @@
 
     (when (or (< (sdl2:rect-x pos) -50)
               (< +window-width+ (sdl2:rect-x pos)))
+      (setf (already-asked ped) nil)
       (setf (sdl2:rect-y pos) (random-y-pos))
       (setf (sdl2:rect-x pos) -49))))
 
