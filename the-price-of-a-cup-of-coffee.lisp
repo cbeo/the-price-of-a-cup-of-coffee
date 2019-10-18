@@ -449,7 +449,8 @@
 
 (defun action-key-pressed ()
   (cond
-    ((and (in-front-of-door-p)
+    ((and (not *on-coffee-break*)
+          (in-front-of-door-p)
           (eql 'facing-up (face *nance*))
           (enough-for-coffee-p))
      (get-coffee!))
@@ -695,6 +696,18 @@
 
 
 
+(defparameter +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
+(defvar *fading-out* nil)
+
+(defun fade-out ()
+  (setf *fading-out* (list 0))
+  (push (animate *fading-out* 'car 255 :start (sdl2:get-ticks) :duration 3000)
+        *tweens*))
+
+(defun end-fade-out ()
+  (setf *fading-out* (list 0))
+  (push (animate *fading-out* 'car 220 :start (sdl2:get-ticks) :duration 15000)
+        *tweens*))
 
 (defmethod render ((game (eql :game)) renderer)
   ;; clear screen
@@ -716,6 +729,10 @@
   (render *money-meter* renderer)
   (render *stress-meter* renderer)
   (render *cold-meter* renderer)
+
+  (when *fading-out*
+    (sdl2:set-render-draw-color renderer 0 0 0 (car *fading-out*))
+    (sdl2:render-fill-rect renderer +screen-sized-rect+))
 
   ;; present
   (sdl2:render-present renderer))
