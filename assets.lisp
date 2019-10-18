@@ -49,29 +49,33 @@
 
 
 (defparameter +emoji-defs+
-  '((:NAME "alarmed-question" :X 360 :Y 0  :WIDTH 72 :HEIGHT 72)
- (:NAME "alarmed" :X 72 :Y 288  :WIDTH 72 :HEIGHT 72)
- (:NAME "angry" :X 144 :Y 288
+'((:NAME "alarmed-question" :X 288 :Y 216  :WIDTH 72 :HEIGHT 72)
+ (:NAME "alarmed" :X 288 :Y 144  :WIDTH 72 :HEIGHT 72)
+ (:NAME "angry" :X 288 :Y 288
   :WIDTH 72 :HEIGHT 72)
- (:NAME "asshole" :X 216 :Y 288  :WIDTH 72 :HEIGHT 72)
- (:NAME "breakdown" :X 0 :Y 360  :WIDTH 72 :HEIGHT 72)
- (:NAME "chance" :X 216 :Y 72
+ (:NAME "asshole" :X 360 :Y 0  :WIDTH 72 :HEIGHT 72)
+ (:NAME "breakdown" :X 72 :Y 288  :WIDTH 72 :HEIGHT 72)
+ (:NAME "chance" :X 144 :Y 288  :WIDTH 72 :HEIGHT 72)
+ (:NAME "coffee" :X 216 :Y 288  :WIDTH 72 :HEIGHT 72)
+ (:NAME "cold" :X 0 :Y 360
   :WIDTH 72 :HEIGHT 72)
- (:NAME "coffee" :X 216 :Y 144  :WIDTH 72 :HEIGHT 72)
- (:NAME "cold" :X 216 :Y 216
+ (:NAME "death" :X 216 :Y 72
   :WIDTH 72 :HEIGHT 72)
- (:NAME "death" :X 288 :Y 0
+ (:NAME "dollars" :X 216 :Y 144  :WIDTH 72 :HEIGHT 72)
+ (:NAME "food1" :X 216 :Y 216
   :WIDTH 72 :HEIGHT 72)
- (:NAME "dollars" :X 72 :Y 216  :WIDTH 72 :HEIGHT 72)
- (:NAME "food1" :X 144 :Y 216
+ (:NAME "food2" :X 288 :Y 0
   :WIDTH 72 :HEIGHT 72)
- (:NAME "food2" :X 0 :Y 288
+ (:NAME "food3" :X 72 :Y 216
   :WIDTH 72 :HEIGHT 72)
- (:NAME "food3" :X 144 :Y 72
+ (:NAME "food4" :X 144 :Y 216
   :WIDTH 72 :HEIGHT 72)
- (:NAME "food4" :X 144 :Y 144
+ (:NAME "food5" :X 0 :Y 288
   :WIDTH 72 :HEIGHT 72)
- (:NAME "food5" :X 216 :Y 0
+ (:NAME "heart1" :X 144 :Y 72
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "heart2" :X 144 :Y 144  :WIDTH 72 :HEIGHT 72)
+ (:NAME "heart3" :X 216 :Y 0
   :WIDTH 72 :HEIGHT 72)
  (:NAME "incapacitated" :X 72 :Y 144  :WIDTH 72 :HEIGHT 72)
  (:NAME "nauseated" :X 0 :Y 216  :WIDTH 72 :HEIGHT 72)

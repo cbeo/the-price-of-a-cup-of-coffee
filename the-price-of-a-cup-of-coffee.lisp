@@ -327,8 +327,8 @@
                               (emote *nance* (choose-one "stressed" "breakdown") 3000)
                               (incf (percent *stress-meter*) (* 3 vulnerability)))
                              ((cointoss kindness)
-                              (emote pedestrian (choose-one "angry" "alarmed-question" "relaxed" "relaxed") 2500)
-                              (emote *nance* "relaxed" 2000)
+                              (emote pedestrian (choose-one "relaxed" "heart1" "heart2" "heart3" "angry") 2500)
+                              (emote *nance* (choose-one "relaxed" "heart1" "heart2" "heart3") 2000)
                               (incf (percent *money-meter*) (random generosity)))
                              (t (emote pedestrian (choose-one "sorry-no" "neutral") 2500)))
                            (resume-walking pedestrian old-vec 800)))))))
@@ -346,10 +346,10 @@
 (defun action-key-pressed ()
   (let-if (mark (find-if (lambda (ped)
                            (< (dist ped *nance*)
-                              (* 0.5 (comfort-rad ped))))
+                              (* 0.75 (comfort-rad ped))))
                          *pedestrians*))
-          (stop-and-consider mark)
-          (incf (percent *stress-meter*) 0.01)))
+          (stop-and-consider mark)))
+
 
 
 
@@ -567,7 +567,7 @@
   (unless *on-coffee-break*
     (if (walking-p *nance*)
         (decf (percent *cold-meter*) 0.0004)
-        (incf (percent *cold-meter*) 0.0005))))
+        (incf (percent *cold-meter*) 0.0003))))
 
 
 
