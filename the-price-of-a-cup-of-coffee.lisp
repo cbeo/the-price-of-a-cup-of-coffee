@@ -302,14 +302,46 @@
   (push (car *pedestrians*) *to-render-by-y*))
 
 
-(defun stop-and-consider (pedestrian))
-  ;; (with-slots (walk-vec expression anger kindness generosity vulnerability) pedestrian
-  ;;   (incf (percent *stress-meter*) vulnerability)
-  ;;   (let ((old-vec (copy-list walk-vec)))
-  ;;     (setf (car walk-vec) 0)
-  ;;     (setf (cdr walk-vec) 0)
-  ;;     (cond
-  ;;       ((cointoss anger) (emote pedestrian "angry")
+(defun choose-one (&rest options)
+  (nth (random (length options)) options))
+
+(defun pause-then (time complete)
+  (let ((pause (pause time (sdl2:get-ticks))))
+    (setf (on-complete pause) complete)
+    (push pause *tweens*)))
+
+
+(defun stop-and-consider (pedestrian)
+  (with-slots (walk-vec expression anger kindness generosity vulnerability) pedestrian
+    (incf (percent *stress-meter*) vulnerability)
+    (when (walking-p pedestrian)
+      (let ((old-vec (copy-list walk-vec)))
+        (setf (car walk-vec) 0)
+        (setf (cdr walk-vec) 0)
+        (emote pedestrian "alarmed-question" 1400)
+        (emote *nance* "alarmed-question" 1400)
+        (pause-then 1400 (lambda ()
+                           (cond
+                             ((cointoss anger)
+                              (emote pedestrian (choose-one "asshole" "very-angry" "death") 2500)
+                              (emote *nance* (choose-one "stressed" "breakdown") 3000)
+                              (incf (percent *stress-meter*) (* 3 vulnerability)))
+                             ((cointoss kindness)
+                              (emote pedestrian (choose-one "angry" "alarmed-question" "relaxed" "relaxed") 2500)
+                              (emote *nance* "relaxed" 2000)
+                              (incf (percent *money-meter*) (random generosity)))
+                             (t (emote pedestrian "alarmed-question" 2500)))
+                           (resume-walking pedestrian old-vec 800)))))))
+
+(defun resume-walking (person vec after)
+  (let ((pause (pause after (sdl2:get-ticks))))
+    (setf (on-complete pause)
+          (lambda ()
+            (setf (car (walk-vec person))
+                  (car vec))
+            (setf (cdr (walk-vec person))
+                  (cdr vec))))
+    (push pause *tweens*)))
 
 (defun action-key-pressed ()
   (let-if (mark (find-if (lambda (ped)
@@ -318,6 +350,7 @@
                          *pedestrians*))
           (stop-and-consider mark)
           (incf (percent *stress-meter*) 0.01)))
+
 
 
 (defun any-p (arg &rest preds)
