@@ -229,15 +229,32 @@
                       :source-rect (get-expression "nauseated")
                       :dest-rect *sickness-rect*)))
 
-(defun make-sick (hero)
-  (unless (sick-p hero)
-    (setf (sick-p hero) t)
-    (setf (walk-speed hero) (round (* 0.5 (walk-speed hero))))))
 
-(defun get-better (hero)
-  (when (sick-p hero)
-    (setf (sick-p hero) nil)
-    (setf (walk-speed hero) (* 2 (walk-speed hero)))))
+
+
+(defun make-sick ()
+  (unless (sick-p *nance*)
+    (setf (sick-p *nance*) t)
+    (setf (walk-speed *nance*) (round (* 0.5 (walk-speed *nance*))))))
+
+(defun get-better ()
+  (when (sick-p *nance*)
+    (setf (sick-p *nance*) nil)
+    (setf (walk-speed *nance*) (* 2 (walk-speed *nance*)))))
+
+(defun sickness-check ()
+  (if (>= (percent *cold-meter*) 0.9)
+      (when (and (not (sick-p *nance*))
+                 (cointoss (percent *stress-meter*)))
+        (make-sick))
+      (when (and (sick-p *nance*)
+                 (cointoss (- 1.0 (percent *stress-meter*))))
+        (get-better))))
+
+(defun check-sickness-loop ()
+  (sickness-check)
+  (pause-then 1000 #'check-sickness-loop))
+
 
 
 (defun in-front-of-door-p ()
