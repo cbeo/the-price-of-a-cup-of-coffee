@@ -535,43 +535,47 @@
 
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
-    (match-key key
-      (:scancode-space (unless (keys-down-action *keys-down*)
-                         (setf (keys-down-action *keys-down*) t)
-                         (action-key-pressed)))
+    (case *input-mode*
+      (:normal
+       (match-key key
+         (:scancode-space (unless (keys-down-action *keys-down*)
+                            (setf (keys-down-action *keys-down*) t)
+                            (action-key-pressed)))
 
-      (:scancode-left (unless (keys-down-left *keys-down*)
-                        (setf (keys-down-left *keys-down*) t)
-                        (add-walk-hero-left)))
+         (:scancode-left (unless (keys-down-left *keys-down*)
+                           (setf (keys-down-left *keys-down*) t)
+                           (add-walk-hero-left)))
 
-      (:scancode-right (unless (keys-down-right *keys-down*)
-                         (setf (keys-down-right *keys-down*) t)
-                         (add-walk-hero-right)))
+         (:scancode-right (unless (keys-down-right *keys-down*)
+                            (setf (keys-down-right *keys-down*) t)
+                            (add-walk-hero-right)))
 
-      (:scancode-up (unless (keys-down-up *keys-down*)
-                      (setf (keys-down-up *keys-down*) t)
-                      (add-walk-hero-up)))
+         (:scancode-up (unless (keys-down-up *keys-down*)
+                         (setf (keys-down-up *keys-down*) t)
+                         (add-walk-hero-up)))
 
-      (:scancode-down (unless (keys-down-down *keys-down*)
-                        (setf (keys-down-down *keys-down*) t)
-                        (add-walk-hero-down))))))
+         (:scancode-down (unless (keys-down-down *keys-down*)
+                           (setf (keys-down-down *keys-down*) t)
+                           (add-walk-hero-down))))))))
 
 
 (defun handle-keyup (keysym)
   (let ((key (sdl2:scancode-value keysym)))
-    (match-key key
-      (:scancode-space (setf (keys-down-action *keys-down*) nil))
-      (:scancode-left (setf (keys-down-left *keys-down*) nil)
-                      (rem-walk-hero-left))
+    (case *input-mode*
+      (:normal
+       (match-key key
+         (:scancode-space (setf (keys-down-action *keys-down*) nil))
+         (:scancode-left (setf (keys-down-left *keys-down*) nil)
+                         (rem-walk-hero-left))
 
-      (:scancode-right (setf (keys-down-right *keys-down*) nil)
-                       (rem-walk-hero-right))
+         (:scancode-right (setf (keys-down-right *keys-down*) nil)
+                          (rem-walk-hero-right))
 
-      (:scancode-up (setf (keys-down-up *keys-down*) nil)
-                    (rem-walk-hero-up))
+         (:scancode-up (setf (keys-down-up *keys-down*) nil)
+                       (rem-walk-hero-up))
 
-      (:scancode-down (setf (keys-down-down *keys-down*) nil)
-                      (rem-walk-hero-down)))))
+         (:scancode-down (setf (keys-down-down *keys-down*) nil)
+                         (rem-walk-hero-down)))))))
 
 (defun update-tweens (time)
   (dolist (tween *tweens*)
