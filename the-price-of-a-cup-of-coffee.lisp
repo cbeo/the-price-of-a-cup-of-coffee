@@ -53,7 +53,7 @@
     (setf (sdl2:rect-x *status-meter-decoration-rect*)
           (+ -32 (sdl2:rect-x shape) (sdl2:rect-width shape)))
     (setf (sdl2:rect-y *status-meter-decoration-rect*)
-          (+ -12 (sdl2:rect-y shape)))
+          (+ -16 (sdl2:rect-y shape)))
     (sdl2:render-copy renderer *expression-texture*
                       :source-rect (get-expression decoration)
                       :dest-rect *status-meter-decoration-rect*)))
@@ -97,6 +97,14 @@
                    :shape (sdl2:make-rect (+ padding (* 4 measure)) y width +meter-bar-height+)
                    :percent 0.0
                    :max-width width)))
+
+(defmethod render :after ((cold-meter (eql *cold-meter*)) renderer)
+  (let ((x (round (* 0.45 (max-width cold-meter)))))
+    (setf (sdl2:rect-x *status-meter-decoration-rect*) x)
+    (sdl2:render-copy renderer *expression-texture*
+                      :source-rect (get-expression "coffee")
+                      :dest-rect *status-meter-decoration-rect*)))
+
 
 ;; TODO - REIMPLEMENT TO WORK WITH *TWEENS*
 ;; (defun drink-coffee ()
