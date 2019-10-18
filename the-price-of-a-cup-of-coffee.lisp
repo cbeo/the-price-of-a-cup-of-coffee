@@ -265,7 +265,7 @@
 (defun stressed-out-sequence ()
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
-  (emote *nance* "incapacitated")
+  (emote *nance* "breakdown")
   (with-slots (pos face) *nance*
     (let ((move-to-home-base
             (sequencing (:at (sdl2:get-ticks) :targeting pos)
@@ -273,13 +273,11 @@
                 (animating :the 'sdl2:rect-x :to +home-base-x+)
                 (animating :the 'sdl2:rect-y :to +home-base-y+))
               (take-action (lambda ()
-                             (print "calling first callback")
                              (setf face 'facing-down)
-                             (emote *nance* "breakdown")))
+                             (emote *nance* "incapacitated")))
               (animate *stress-meter* 'percent 0.25
                        :rounding nil :duration 4000 :ease #'quad-in-out
                        :on-complete (lambda ()
-                                      (print "calling second callback")
                                       (emote *nance* nil)
                                       (setf *collision-on-p* t)
                                       (setf *input-mode* :normal))))))
