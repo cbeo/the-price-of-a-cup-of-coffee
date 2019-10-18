@@ -145,7 +145,6 @@
 
   (setf *speech-bubble-texture* (make-texture-from-file renderer +speechbubble-image+))
 
-
   (unless *harmony-initialized-p*
     (harmony-simple:initialize)
     (setf *looking-up-track* (harmony-simple:play +things-look-up-track-path+ :music :loop t))

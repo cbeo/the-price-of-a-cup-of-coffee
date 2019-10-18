@@ -238,7 +238,6 @@
 
 
 
-
 (defun make-sick ()
   (unless (sick-p *nance*)
     (setf (sick-p *nance*) t)
@@ -425,6 +424,23 @@
   (<= 1.0 (percent *money-meter*)))
 
 (defun get-coffee! ()
+  (decf (percent *money-meter*) 0.45)
+  (play-track *looking-up-track*)
+  (emote *nance* "coffee")
+  (setf *collision-on-p* nil)
+  (setf *on-coffee-break* t)
+  (let ((now (sdl2:get-ticks))
+        (dur 10000))
+    (push (animate *cold-meter* 'percent 0.0 :ease #'cubic-in :duration dur :start now :rounding nil) *tweens*)
+    (push (animate *stress-meter* 'percent 0.1 :ease #'cubic-in :duration dur :start now :rounding nil) *tweens*)
+    (pause-then
+     dur
+     (lambda ()
+       (play-track *cold-day-track*)
+       (emote *nance* nil)
+       (setf *collision-on-p* t)
+       (setf *on-coffee-break* nil)))))
+
   (print "Getting Coffee!!!"))
 
 (defun get-food! ()
@@ -716,7 +732,7 @@
 
 (defun start ()
 
-  ;; (play-track *cold-day-track*)
+  (play-track *cold-day-track*)
   (unwind-protect
        (sdl2:with-init (:everything)
          (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
