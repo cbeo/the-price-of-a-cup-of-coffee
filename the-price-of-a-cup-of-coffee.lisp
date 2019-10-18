@@ -226,7 +226,7 @@
   (sick-p nil))
 
 
-(defvar *sickness-rect* (sdl2:make-rect 0 0 32 32))
+(defvar *sickness-rect* (sdl2:make-rect 0 0 40 40))
 
 (defmethod render :after ((nance hero) renderer)
   (when (sick-p nance)
@@ -418,13 +418,35 @@
                   (cdr vec))))
     (push pause *tweens*)))
 
+(defun enough-for-coffee-p ()
+  (<= 0.45 (percent *money-meter*)))
+
+(defun enough-for-food-p ()
+  (<= 1.0 (percent *money-meter*)))
+
+(defun get-coffee! ()
+  (print "Getting Coffee!!!"))
+
+(defun get-food! ()
+  (print "Getting Food!!!"))
+
 (defun action-key-pressed ()
-  (let-if (mark (find-if (lambda (ped)
-                           (and (not (already-asked ped))
-                                (< (dist ped *nance*)
-                                   (* 0.75 (comfort-rad ped)))))
-                         *pedestrians*))
-          (stop-and-consider mark)))
+  (cond
+    ((and (in-front-of-door-p)
+          (eql 'facing-up (face *nance*))
+          (enough-for-coffee-p))
+     (get-coffee!))
+    ((and (in-front-of-door-p)
+          (eql 'facing-up (face *nance*))
+          (enough-for-food-p))
+     (get-food!))
+    (t
+     (let-when (mark (find-if (lambda (ped)
+                                (and (not (already-asked ped))
+                                     (< (dist ped *nance*)
+                                        (* 0.75 (comfort-rad ped)))))
+                              *pedestrians*))
+       (stop-and-consider mark)))))
 
 
 
