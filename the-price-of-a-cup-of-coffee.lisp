@@ -291,8 +291,9 @@
 
   ;; boot up nance
   (setf *nance* (make-instance 'hero :sheet *nance-texture*))
-  (setf (sdl2:rect-x (pos *nance*))
-        (round (* 0.5 (- +window-width+ (sdl2:rect-width (pos *nance*))))))
+  (setf (sdl2:rect-x (pos *nance*)) 292)
+  (setf (sdl2:rect-y (pos *nance*)) 38)
+
 
   (push *nance* *to-render-by-y*)
 
