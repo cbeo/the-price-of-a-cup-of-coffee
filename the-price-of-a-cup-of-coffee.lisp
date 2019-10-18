@@ -105,6 +105,10 @@
                       :source-rect (get-expression "coffee")
                       :dest-rect *status-meter-decoration-rect*)))
 
+(defmethod (setf percent) :after (new-val (meter (eql *stress-meter*)))
+  (when (<= 1.0 new-val)
+    (stressed-out-sequence)))
+
 
 ;; TODO - REIMPLEMENT TO WORK WITH *TWEENS*
 ;; (defun drink-coffee ()
