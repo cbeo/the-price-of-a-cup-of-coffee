@@ -269,9 +269,9 @@
           (make-instance 'pedestrian
                          :sheet *suit-texture*
                          :comfort-rad 120
-                         :anger 0.1
-                         :kindness 0.015
-                         :generosity 0.5
+                         :anger 0.2
+                         :kindness 0.5
+                         :generosity 0.25
                          :vulnerability 0.07
                          )))
     (setf (walk-speed suit) 5)
@@ -318,9 +318,9 @@
       (let ((old-vec (copy-list walk-vec)))
         (setf (car walk-vec) 0)
         (setf (cdr walk-vec) 0)
-        (emote pedestrian "alarmed-question" 1400)
-        (emote *nance* "alarmed-question" 1400)
-        (pause-then 1400 (lambda ()
+        (emote pedestrian "alarmed-question" 800)
+        (emote *nance* "alarmed-question" 800)
+        (pause-then 1000 (lambda ()
                            (cond
                              ((cointoss anger)
                               (emote pedestrian (choose-one "asshole" "very-angry" "death") 2500)
@@ -330,7 +330,7 @@
                               (emote pedestrian (choose-one "angry" "alarmed-question" "relaxed" "relaxed") 2500)
                               (emote *nance* "relaxed" 2000)
                               (incf (percent *money-meter*) (random generosity)))
-                             (t (emote pedestrian "alarmed-question" 2500)))
+                             (t (emote pedestrian (choose-one "sorry-no" "neutral") 2500)))
                            (resume-walking pedestrian old-vec 800)))))))
 
 (defun resume-walking (person vec after)
