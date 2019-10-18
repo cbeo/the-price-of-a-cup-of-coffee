@@ -45,47 +45,44 @@
     (:NAME "WalkRight1" :X 64 :Y 0  :WIDTH 64 :HEIGHT 128)
     (:NAME "WalkRight2" :X 0 :Y 0  :WIDTH 64 :HEIGHT 128)))
 
+
+
+
 (defparameter +emoji-defs+
-  '((:NAME "alarmed-question" :X 216 :Y 288
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "alarmed" :X 0 :Y 360
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "angry" :X 216 :Y 72
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "asshole" :X 216 :Y 144
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "breakdown" :X 216 :Y 216
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "chance" :X 288 :Y 0
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "cold" :X 72 :Y 216
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "death" :X 144 :Y 216
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "dollars" :X 0 :Y 288
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "food1" :X 144 :Y 72
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "food2" :X 144 :Y 144
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "food3" :X 216 :Y 0
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "food4" :X 72 :Y 144
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "food5" :X 0 :Y 216
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "incapacitated" :X 72 :Y 72
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "nauseated" :X 144 :Y 0
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "relaxed" :X 0 :Y 144
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "sick" :X 72 :Y 0
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "stressed" :X 0 :Y 72
-     :WIDTH 72 :HEIGHT 72)
-    (:NAME "very-angry" :X 0 :Y 0
-     :WIDTH 72 :HEIGHT 72)))
+  '((:NAME "alarmed-question" :X 360 :Y 0  :WIDTH 72 :HEIGHT 72)
+ (:NAME "alarmed" :X 72 :Y 288  :WIDTH 72 :HEIGHT 72)
+ (:NAME "angry" :X 144 :Y 288
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "asshole" :X 216 :Y 288  :WIDTH 72 :HEIGHT 72)
+ (:NAME "breakdown" :X 0 :Y 360  :WIDTH 72 :HEIGHT 72)
+ (:NAME "chance" :X 216 :Y 72
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "coffee" :X 216 :Y 144  :WIDTH 72 :HEIGHT 72)
+ (:NAME "cold" :X 216 :Y 216
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "death" :X 288 :Y 0
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "dollars" :X 72 :Y 216  :WIDTH 72 :HEIGHT 72)
+ (:NAME "food1" :X 144 :Y 216
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "food2" :X 0 :Y 288
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "food3" :X 144 :Y 72
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "food4" :X 144 :Y 144
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "food5" :X 216 :Y 0
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "incapacitated" :X 72 :Y 144  :WIDTH 72 :HEIGHT 72)
+ (:NAME "nauseated" :X 0 :Y 216  :WIDTH 72 :HEIGHT 72)
+ (:NAME "neutral" :X 72 :Y 72  :WIDTH 72 :HEIGHT 72)
+ (:NAME "relaxed" :X 144 :Y 0  :WIDTH 72 :HEIGHT 72)
+ (:NAME "sick" :X 0 :Y 144
+  :WIDTH 72 :HEIGHT 72)
+ (:NAME "sorry-no" :X 72 :Y 0  :WIDTH 72 :HEIGHT 72)
+ (:NAME "stressed" :X 0 :Y 72  :WIDTH 72 :HEIGHT 72)
+ (:NAME "very-angry" :X 0 :Y 0  :WIDTH 72 :HEIGHT 72)))
+
 
 (defparameter +shared-faces+
   (create-sprite-faces +tile-defs+))
