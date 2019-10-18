@@ -255,7 +255,31 @@
   (sickness-check)
   (pause-then 1000 #'check-sickness-loop))
 
+(defvar *collision-on-p* t)
+(defvar *input-mode* :normal) ;; (or :normal :start nil)
 
+(defun stressed-out-sequence ()
+  (setf *collision-on-p* nil)
+  (setf *input-mode* nil)
+  (emote *nance* "incapacitated")
+  (with-slots (pos face) *nance*
+    (let ((move-to-home-base
+            (sequencing (:at (sdl2:get-ticks) :targeting pos)
+              (grouping (:for 2000)
+                (animating :the 'sdl2:rect-x :to +home-base-x+)
+                (animating :the 'sdl2:rect-y :to +home-base-y+))
+              (take-action (lambda ()
+                             (print "calling first callback")
+                             (setf face 'facing-down)
+                             (emote *nance* "breakdown")))
+              (animate *stress-meter* 'percent 0.25
+                       :rounding nil :duration 4000 :ease #'quad-in-out
+                       :on-complete (lambda ()
+                                      (print "calling second callback")
+                                      (emote *nance* nil)
+                                      (setf *collision-on-p* t)
+                                      (setf *input-mode* :normal))))))
+      (push move-to-home-base *tweens*))))
 
 (defun in-front-of-door-p ()
   (with-slots (pos) *nance*
@@ -320,6 +344,8 @@
     (setf (sdl2:rect-y (pos suit)) (random-y-pos))
     suit))
 
+(defparameter +home-base-y+ 38)
+(defparameter +home-base-x+ 292)
 
 (defun boot-up (renderer)
   ;; cleanup from previous calls to start - used while testing
