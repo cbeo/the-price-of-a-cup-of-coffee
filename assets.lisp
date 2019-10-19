@@ -97,6 +97,7 @@
 (defparameter +suit-sheet-image+ #P"assets/Suit.png")
 (defparameter +nomry-sheet-image+ #P"assets/Normy.png")
 (defparameter +kid-sheet-image+ #P"assets/KidSheet.png")
+(defparameter +punker-sheet-image+ #P"assets/Punker.png")
 (defparameter +things-look-up-track-path+ #P"assets/thingslookup.mp3")
 (defparameter +cold-day-track-path+ #P"assets/coldday.mp3")
 (defparameter +emoji-sheet-image+ #P"assets/emoji.png")
@@ -109,6 +110,7 @@
 (defvar *suit-texture*)
 (defvar *normy-texture*)
 (defvar *kid-texture*)
+(defvar *punker-texture*)
 (defvar *expression-texture*)
 (defvar *backdrop-texture*)
 (defvar *sliding-door-texture*)
@@ -136,6 +138,8 @@
   (setf *normy-texture* (make-texture-from-file renderer  +nomry-sheet-image+))
 
   (setf *kid-texture* (make-texture-from-file renderer +kid-sheet-image+))
+
+  (setf *punker-texture* (make-texture-from-file renderer +punker-sheet-image+))
 
   (setf *expression-texture* (make-texture-from-file renderer  +emoji-sheet-image+))
 

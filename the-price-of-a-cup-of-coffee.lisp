@@ -694,7 +694,8 @@
       (pause-then 1200
                   (lambda ()
                     (setf *collision-on-p* t)
-                    (setf *input-mode* :normal))))))
+                    (setf *input-mode* :normal)
+                    (incf (percent *stress-meter*) (* 5 (vulnerability ped))))))))
 
 
 (defun x-direction (person)
