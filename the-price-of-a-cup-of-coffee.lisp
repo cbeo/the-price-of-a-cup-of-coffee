@@ -285,7 +285,8 @@
   (with-slots (pos) hero
     (setf (sdl2:rect-x pos)
           (mod (sdl2:rect-x pos) +window-width+))
-    (if (in-front-of-door-p)
+    (snap-hit-box-to hero *nance-hit-box*)
+   (if (in-front-of-door-p)
         (when (not *door-open-p*)
           (open-door))
         (when *door-open-p*
@@ -647,6 +648,26 @@
     ;; update the displayd animation
     (set-walk-face-by-walk-vec person1)))
 
+
+(defun reset-pedestrian (ped)
+  (setf (already-asked ped) nil)
+  (setf (sdl2:rect-y (pos ped)) (random-y-pos))
+  (setf (sdl2:rect-x (pos ped)) -49))
+
+(defvar *ped-hit-box* (sdl2:make-rect 0 0 64 40))
+(defvar *nance-hit-box* (sdl2:make-rect 0 0 64 40))
+
+(defun snap-hit-box-to (human hitbox)
+  (setf (sdl2:rect-x hitbox) (x-pos human))
+  (setf (sdl2:rect-y hitbox) (+ (y-pos human) 88)))
+
+(defun collision-check (ped)
+  (when *collision-on-p*
+    (snap-hit-box-to ped *ped-hit-box*)
+    (when (sdl2:has-intersect *ped-hit-box* *nance-hit-box*)
+      (print "collision detected!"))))
+
+
 (defmethod update ((ped pedestrian) time)
   (call-next-method)
   (with-slots (pos react-per-sec next-react) ped
@@ -658,12 +679,11 @@
                            (/ 1000 react-per-sec)))))
       (adjust-walk-relative-to ped *nance*))
 
+    (collision-check ped)
+
     (when (or (< (sdl2:rect-x pos) -50)
               (< +window-width+ (sdl2:rect-x pos)))
-      (setf (already-asked ped) nil)
-      (setf (sdl2:rect-y pos) (random-y-pos))
-      (setf (sdl2:rect-x pos) -49))))
-
+      (reset-pedestrian ped))))
 
 (defmethod update ((game (eql :game)) time)
   (update *nance* time)
