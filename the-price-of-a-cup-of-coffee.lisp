@@ -136,9 +136,6 @@
   (frame 0)
   (next-frame-at 0))
 
-(defmethod (setf face) :after (new-val (human human))
-  (setf (frame human) 0))
-
 (defun x-pos (person)
   (sdl2:rect-x (pos person)))
 
@@ -159,7 +156,8 @@
 
 (defun get-frame-rect (human)
   (with-slots (faces face frame) human
-      (aref (funcall face faces) frame)))
+    (let ((seq (funcall face faces)))
+      (aref seq (min (1- (length seq)) frame)))))
 
 (defmethod initialize-instance :after ((human human) &key)
   (setf (walk-speed human) 6)
