@@ -46,8 +46,6 @@
     (:NAME "WalkRight2" :X 0 :Y 0  :WIDTH 64 :HEIGHT 128)))
 
 
-
-
 (defparameter +emoji-defs+
 '((:NAME "alarmed-question" :X 288 :Y 216  :WIDTH 72 :HEIGHT 72)
  (:NAME "alarmed" :X 288 :Y 144  :WIDTH 72 :HEIGHT 72)
@@ -104,13 +102,16 @@
 (defparameter +sliding-door-image+ #P"assets/sliding-door.png")
 (defparameter +backdrop-image+ #P"assets/backdrop.png")
 (defparameter +speechbubble-image+ #P"assets/Speechbubble.png")
-
+(defparameter +cop1-sheet-image+ #P"assets/Cop1.png")
+(defparameter +cop2-sheet-image+ #P"assets/Cop2.png")
 
 (defvar *nance-texture*)
 (defvar *suit-texture*)
 (defvar *normy-texture*)
 (defvar *kid-texture*)
 (defvar *punker-texture*)
+(defvar *cop1-texture*)
+(defvar *cop2-texture*)
 (defvar *expression-texture*)
 (defvar *backdrop-texture*)
 (defvar *sliding-door-texture*)
@@ -126,28 +127,30 @@
 (defvar *looking-up-track*)
 (defvar *current-track*)
 
+(defvar *cop-animation-faces*
+  (let* ((f1 (sdl2:make-rect 0 0 64 128))
+         (f2 (sdl2:make-rect 64 0 64 128))
+         (v (make-array 2 :initial-contents (list f1 f2))))
+    (make-sprite-faces
+     :facing-down v :facing-up v :facing-left v :facing-right v
+     :walking-down v :walking-up v :walking-left v :walking-right v)))
+
 (defun make-texture-from-file (renderer filepath)
   (with-surface-from-file (surf filepath)
     (sdl2:create-texture-from-surface renderer surf)))
 
 (defun boot-up-assets (renderer)
   (setf *nance-texture* (make-texture-from-file renderer  +nance-sheet-image+))
-
   (setf *suit-texture* (make-texture-from-file renderer  +suit-sheet-image+))
-
   (setf *normy-texture* (make-texture-from-file renderer  +nomry-sheet-image+))
-
   (setf *kid-texture* (make-texture-from-file renderer +kid-sheet-image+))
-
   (setf *punker-texture* (make-texture-from-file renderer +punker-sheet-image+))
-
   (setf *expression-texture* (make-texture-from-file renderer  +emoji-sheet-image+))
-
   (setf *sliding-door-texture* (make-texture-from-file renderer  +sliding-door-image+))
-
   (setf *backdrop-texture* (make-texture-from-file renderer  +backdrop-image+))
-
   (setf *speech-bubble-texture* (make-texture-from-file renderer +speechbubble-image+))
+  (setf *cop1-texture* (make-texture-from-file renderer +cop1-sheet-image+))
+  (setf *cop2-texture* (make-texture-from-file renderer +cop2-sheet-image+))
 
   (unless *harmony-initialized-p*
     (harmony-simple:initialize)

@@ -109,8 +109,6 @@
   (when (<= 1.0 new-val)
     (stressed-out-sequence)))
 
-
-
 (defun get-sick ()
   (unless (sick-p *nance*)
     (setf (sick-p *nance*) t)
@@ -125,6 +123,7 @@
 
 
 (def-normal-class human ()
+  (paused nil)
   (walk-vec (cons 0 0))
   (walk-speed 6)
   diag-walk-speed
@@ -142,6 +141,9 @@
 (defun y-pos (person)
   (sdl2:rect-y (pos person)))
 
+(defun (setf y-pos) (new-val person)
+  (setf (sdl2:rect-y (pos person)) new-val))
+
 (defun walking-p (human)
   (not (standing-p human)))
 
@@ -157,7 +159,8 @@
 (defun get-frame-rect (human)
   (with-slots (faces face frame) human
     (let ((seq (funcall face faces)))
-      (aref seq (min (1- (length seq)) frame)))))
+      (aref seq (mod frame (length seq))))))
+
 
 (defmethod initialize-instance :after ((human human) &key)
   (setf (walk-speed human) 6)
@@ -168,14 +171,16 @@
                             (sdl2:rect-width rect)
                             (sdl2:rect-height rect))))))
 
-
+(defvar *space-clamping-p* t)
 
 (defmethod update ((human human) ticks)
   (with-slots (frame next-frame-at faces face walk-vec pos) human
     (incf (sdl2:rect-x pos) (car walk-vec))
     (setf (sdl2:rect-y pos)
-          (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
-                 +vert-min+ +vert-max+))
+          (if *space-clamping-p*
+              (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
+                     +vert-min+ +vert-max+)
+              (+ (sdl2:rect-y pos) (cdr walk-vec))))
     (when (<= next-frame-at ticks)
       (setf next-frame-at (max (+ *human-frame-pause* next-frame-at) ticks))
       (setf frame (mod (1+ frame) (length (funcall face faces)))))))
@@ -430,9 +435,19 @@
        (setf *collision-on-p* t)
        (setf *on-coffee-break* nil)))))
 
+(defun clear-level ()
+  ;; fade out to black with happy music playing
+  ;; change music
+  ;; reset nance position and stats
+  ;; reset collision count
+  (setf *collision-count* 0)
+  ;; fade in
+  ;; set input mode and collision mode
+  )
 
 (defun get-food! ()
-  (print "Getting Food!!!"))
+  (print "Getting Food!!!")
+  (clear-level))
 
 (defun action-key-pressed ()
   (cond
@@ -454,8 +469,6 @@
        (stop-and-consider mark)))))
 
 
-
-
 (defun any-p (arg &rest preds)
   (and preds
     (or (funcall (car preds) arg)
@@ -469,7 +482,6 @@
 
 (defun clear-keys-down ()
   (setf *keys-down* (make-keys-down)))
-  
 
 (defun set-walk-vec-by-keysdown ()
   (with-slots (walk-vec walk-speed diag-walk-speed) *nance*
@@ -669,6 +681,8 @@
     (when (sdl2:has-intersect *ped-hit-box* *nance-hit-box*)
       (run-collision ped))))
 
+(defvar *collision-count* 0)
+
 (defun run-collision (ped)
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
@@ -689,11 +703,58 @@
              (animating :the 'sdl2:rect-y :to ty :by :quad-in :for 225)
              (animating :the 'sdl2:rect-y :to oy :by :quad-out :for 225))
             *tweens*)
-      (pause-then 1200
-                  (lambda ()
-                    (setf *collision-on-p* t)
-                    (setf *input-mode* :normal)
-                    (incf (percent *stress-meter*) (* 5 (vulnerability ped))))))))
+      (incf *collision-count*)
+      (if (< *collision-count* 3)
+          (pause-then 1200
+                      (lambda ()
+                        (setf *collision-on-p* t)
+                        (setf *input-mode* :normal)
+                        (incf (percent *stress-meter*) (* 5 (vulnerability ped)))))
+          (pause-then 1000 #'game-over)))))
+
+
+(defun game-over ()
+  (setf *space-clamping-p* nil)
+  (setf *collision-on-p* nil)
+  (setf *input-mode* nil)
+  (clear-keys-down)
+
+  (dolist (p *pedestrians*) (setf (paused p) t))
+
+  (let ((cop1 (make-instance 'human
+                             :faces *cop-animation-faces*
+                             :sheet *cop1-texture*))
+        (cop2 (make-instance 'human
+                             :faces *cop-animation-faces*
+                             :sheet *cop2-texture*))
+        (nance-y (y-pos *nance*)))
+
+    (push cop1 *to-render-by-y*)
+    (push cop2 *to-render-by-y*)
+    (push cop1 *pedestrians*)
+    (push cop2 *pedestrians*)
+
+    (setf (pos cop1)
+          (sdl2:make-rect (- (x-pos *nance*) 64) 620 64 128))
+    (setf (pos cop2)
+          (sdl2:make-rect (+ (x-pos *nance*) 64) 620 64 128))
+
+    (push (sequencing (:at (sdl2:get-ticks))
+            (grouping (:for 2600)
+              (animating :the 'y-pos :of cop1 :to nance-y)
+              (animating :the 'y-pos :of cop2 :to nance-y))
+            (grouping (:for 2600)
+              (animating :the 'y-pos :of cop1 :to 620)
+              (animating :the 'y-pos :of cop2 :to 620)
+              (animating :the 'y-pos :of *nance* :to 620))
+            (take-action
+             (lambda ()
+               (setf *to-render-by-y* (delete *nance* *to-render-by-y*))
+               (dolist (p *pedestrians*) (setf (paused p) nil))
+               (end-fade-out))))
+          *tweens*)))
+
+
 
 
 (defun x-direction (person)
@@ -708,10 +769,9 @@
     ((facing-down walking-down) 1)
     (t 0)))
 
-
-
 (defmethod update ((ped pedestrian) time)
-  (call-next-method)
+  (unless (paused ped)
+    (call-next-method))
   (with-slots (pos react-per-sec next-react) ped
     (when (<= next-react time)
       ;; update react check
@@ -728,7 +788,7 @@
       (reset-pedestrian ped))))
 
 (defmethod update ((game (eql :game)) time)
-  (update *nance* time)
+(update *nance* time)
 
   (update-tweens time)
 
@@ -756,7 +816,7 @@
 
 (defun end-fade-out ()
   (setf *fading-out* (list 0))
-  (push (animate *fading-out* 'car 220 :start (sdl2:get-ticks) :duration 15000)
+  (push (animate *fading-out* 'car 200 :start (sdl2:get-ticks) :duration 15000)
         *tweens*))
 
 (defmethod render ((game (eql :game)) renderer)
