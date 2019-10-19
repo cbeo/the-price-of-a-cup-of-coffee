@@ -98,8 +98,8 @@
                    :percent 0.0
                    :max-width width)))
 
-(defmethod render :after ((cold-meter (eql *cold-meter*)) renderer)
-  (let ((x (round (* 0.45 (max-width cold-meter)))))
+(defmethod render :after ((money-meter (eql *money-meter*)) renderer)
+  (let ((x (round (* +coffee-cost+ (max-width money-meter)))))
     (setf (sdl2:rect-x *status-meter-decoration-rect*) x)
     (sdl2:render-copy renderer *expression-texture*
                       :source-rect (get-expression "coffee")
@@ -417,7 +417,7 @@
                   (cdr vec))))
     (push pause *tweens*)))
 
-(defparameter +coffee-cost+ 0.55)
+(defparameter +coffee-cost+ 0.45)
 
 (defun enough-for-coffee-p ()
   (<= +coffee-cost+ (percent *money-meter*)))
@@ -433,8 +433,8 @@
   (setf *on-coffee-break* t)
   (let ((now (sdl2:get-ticks))
         (dur 10000))
-    (push (animate *cold-meter* 'percent 0.0 :ease #'cubic-in :duration dur :start now :rounding nil) *tweens*)
-    (push (animate *stress-meter* 'percent 0.1 :ease #'cubic-in :duration dur :start now :rounding nil) *tweens*)
+    (push (animate *cold-meter* 'percent 0.0  :duration dur :start now :rounding nil) *tweens*)
+    (push (animate *stress-meter* 'percent 0.1  :duration dur :start now :rounding nil) *tweens*)
     (pause-then
      dur
      (lambda ()
