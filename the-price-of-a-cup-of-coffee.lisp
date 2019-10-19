@@ -2,7 +2,6 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
-
 ;;; CONSTANTS
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
@@ -14,7 +13,6 @@
 (defparameter +home-base-x+ 292)
 (defparameter +coffee-cost+ 0.45)
 (defparameter +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
-
 
 ;;; STUCTS AND CLASSES
 (defstruct keys-down left right up down action)
@@ -54,7 +52,6 @@
   (vulnerability 0.03))
 
 ;;; GLOBALS
-
 (defvar *nance*)
 (defvar *pedestrians* nil)
 (defvar *to-render-by-y* nil)
@@ -76,9 +73,8 @@
 (defvar *keys-down* (make-keys-down))
 (defvar *human-frame-pause* (/ 1000 4))
 
-(defun set-human-fps (n)
-  (setf *human-frame-pause* (/ 1000 n)))
-
+(defvar *cached-pedestrians* nil)
+(defvar *pedestrian-count* 4)
 
 (let* ((padding 8)
        (y (- +window-height+ +meter-bar-height+ padding))
@@ -116,13 +112,11 @@
                    :max-width width)))
 
 ;;; GENERICS
-
 (defgeneric render (sprite renderer))
 (defgeneric update (thing time))
 
 
 ;;;; INITIALIZERS
-
 (defmethod initialize-instance :after ((human human) &key)
   (setf (walk-speed human) 6)
   (with-slots (faces pos) human
@@ -135,7 +129,6 @@
 
 
 ;;; RENDERING IMPLEMENTATIONS
-
 (defmethod render ((meter status-meter) renderer)
   (with-slots (color shape filled-shape decoration) meter
     (destructuring-bind (r g b a) color
@@ -212,7 +205,6 @@
 
 
 ;;; UPDATE IMPLEMENTATIONS
-
 (defmethod update ((human human) ticks)
   (with-slots (frame next-frame-at faces face walk-vec pos) human
     (incf (sdl2:rect-x pos) (car walk-vec))
@@ -256,12 +248,9 @@
 
 (defmethod update ((game (eql :game)) time)
   (update *nance* time)
-
   (update-tweens time)
-
   (dolist (person *pedestrians*)
     (update person time))
-
   (unless *on-coffee-break*
     (if (walking-p *nance*)
         (unless (sick-p *nance*)
@@ -273,7 +262,6 @@
 
 
 ;;; ACCESSORS
-
 (defmethod (setf percent) :after (new-val (meter status-meter))
   (with-slots (filled-shape max-width percent) meter
     (setf percent (clamp new-val 0.0 1.0))
@@ -298,7 +286,6 @@
   (setf (sdl2:rect-y (pos person)) new-val))
 
 ;;;; PREDICATES
-
 (defun walking-p (human)
   (not (standing-p human)))
 
@@ -321,9 +308,7 @@
   (<= 1.0 (percent *money-meter*)))
 
 
-
 ;;;; STATE CONTROL
-
 (defun make-sick ()
   (unless (sick-p *nance*)
     (setf (sick-p *nance*) t)
@@ -362,14 +347,98 @@
   (push *nance* *to-render-by-y*)
 
   (check-sickness-loop)
-
+  (spawn-pedestrian-loop)
   ;; boot up initial pedestrians
   (push (make-suit) *pedestrians*)
   (push (car *pedestrians*) *to-render-by-y*))
 
 
-;;;; ANIMATIONS AND SEQUENCES
+;;; SPAWNING PEDESTRIANS
 
+;;;; CONSTRUCTORS
+(defun make-suit ()
+  (let ((suit
+          (make-instance 'pedestrian
+                         :sheet *suit-texture*
+                         :comfort-rad 120
+                         :anger 0.1
+                         :kindness 0.1
+                         :generosity 0.25
+                         :vulnerability 0.04
+                         )))
+    (setf (walk-speed suit) 5)
+    (setf (walk-vec suit) (cons (walk-speed suit) 0))
+
+    (set-walk-face-by-walk-vec suit)
+    (setf (sdl2:rect-y (pos suit)) (random-y-pos))
+    suit))
+
+(defun make-normy ()
+  (let ((normy
+          (make-instance 'pedestrian
+                         :sheet *normy-texture*
+                         :comfort-rad 90
+                         :anger 0.07
+                         :kindness 0.16
+                         :generosity 0.2
+                         :vulnerability 0.05)))
+    (setf (walk-speed normy) 4)
+    (setf (walk-vec normy) (cons (walk-speed normy) 0))
+    (setf (sdl2:rect-y (pos normy)) (random-y-pos))
+    normy))
+
+(defun make-kid ()
+  (let ((kid
+          (make-instance 'pedestrian
+                         :sheet *kid-texture*
+                         :comfort-rad 80
+                         :anger 0.04
+                         :kindness 0.7
+                         :generosity 0.08
+                         :vulnerability 0.09)))
+    (setf (walk-speed kid) 3)
+    (setf (walk-vec kid) (cons (walk-speed kid) 0))
+    (setf (sdl2:rect-y (pos kid)) (random-y-pos))
+    kid))
+
+(defun make-punker ()
+  (let ((punker
+          (make-instance 'pedestrian
+                         :sheet *punker-texture*
+                         :comfort-rad 100
+                         :anger 0.01
+                         :kindness 0.3
+                         :generosity 0.5
+                         :vulnerability 0.01)))
+    (setf (walk-speed punker) 3)
+    (setf (walk-vec punker) (cons (walk-speed punker) 0))
+    (setf (sdl2:rect-y (pos punker)) (random-y-pos))
+    punker))
+
+(defun add-pedestrian (ped)
+  (push ped *pedestrians*)
+  (push ped *to-render-by-y*))
+
+(defun remove-pedestrian (ped)
+  (setf *to-render-by-y* (delete ped *to-render-by-y*))
+  (setf *pedestrians* (delete ped *pedestrians*)))
+
+(defun spawn-pedestrian ()
+  (if *cached-pedestrians*
+      (add-pedestrian (pop *cached-pedestrians*))
+      (let ((roll (random 100)))
+        (cond ((< roll 50) (add-pedestrian (make-normy)))
+              ((< roll 75) (add-pedestrian (make-suit)))
+              ((< roll 90) (add-pedestrian (make-kid)))
+              (t (add-pedestrian (make-punker)))))))
+
+
+(defun spawn-pedestrian-loop ()
+  (when (< (length *pedestrians*) *pedestrian-count*)
+    (spawn-pedestrian))
+  (pause-then 1200 #'spawn-pedestrian-loop))
+
+;;;; ANIMATIONS AND SEQUENCES
 (defun update-tweens (time)
   (dolist (tween *tweens*)
     (run-tween tween time))
@@ -411,6 +480,7 @@
       (push move-to-home-base *tweens*))))
 
 (defun stop-and-consider (pedestrian)
+  (setf *collision-on-p* nil)
   (with-slots (walk-vec already-asked expression anger kindness generosity vulnerability) pedestrian
 
     (setf already-asked t)
@@ -421,6 +491,7 @@
         (emote pedestrian "alarmed-question" 800)
         (emote *nance* "alarmed-question" 800)
         (pause-then 1000 (lambda ()
+                           (setf *collision-on-p* t)
                            (cond
                              ((cointoss anger)
                               (emote pedestrian (choose-one "asshole" "very-angry" "death") 2500)
@@ -493,15 +564,14 @@
              (animating :the 'sdl2:rect-y :to oy :by :quad-out :for 225))
             *tweens*)
       (incf *collision-count*)
-      (if (< *collision-count* 3)
+      ;; if you've had 3 or more collisions, its a cointoss that somebody calls the cops
+      (if (and (>= *collision-count* 3) (cointoss 0.5))
+          (pause-then 1000 #'game-over)
           (pause-then 1200
                       (lambda ()
                         (setf *collision-on-p* t)
                         (setf *input-mode* :normal)
-                        (incf (percent *stress-meter*) (* 5 (vulnerability ped)))))
-          (pause-then 1000 #'game-over)))))
-
-
+                        (incf (percent *stress-meter*) (* 5 (vulnerability ped)))))))))
 
 (defun open-door ()
   (unless *door-open-p*
@@ -521,7 +591,7 @@
                    :duration 500)
           *tweens*)))
 
-;; TODO FIX STRANGE BUG IN FINITE LOOPING BEHAVIOR IN ANIMISE
+
 (defun hopping-mad (who)
   (with-slots (pos) who
     (let* ((current-y (sdl2:rect-y pos))
@@ -537,8 +607,6 @@
                )))
       (push anim *tweens*))))
 
-
-
 (defun clear-level ()
   ;; fade out to black with happy music playing
   ;; change music
@@ -552,7 +620,6 @@
 (defun get-food! ()
   (print "Getting Food!!!")
   (clear-level))
-
 
 (defun game-over ()
   (setf *space-clamping-p* nil)
@@ -605,9 +672,9 @@
   (push (animate *fading-out* 'car 200 :start (sdl2:get-ticks) :duration 15000)
         *tweens*))
 
-
-
 ;;;; HELPERS
+(defun set-human-fps (n)
+  (setf *human-frame-pause* (/ 1000 n)))
 
 (defun reset-pedestrian (ped)
   (setf (already-asked ped) nil)
@@ -675,25 +742,6 @@
     (t 0)))
 
 
-;;;; CONSTRUCTORS
-
-(defun make-suit ()
-  (let ((suit
-          (make-instance 'pedestrian
-                         :sheet *suit-texture*
-                         :comfort-rad 120
-                         :anger 0.2
-                         :kindness 0.5
-                         :generosity 0.25
-                         :vulnerability 0.07
-                         )))
-    (setf (walk-speed suit) 5)
-    (setf (walk-vec suit) (cons (walk-speed suit) 0))
-
-    (set-walk-face-by-walk-vec suit)
-    (setf (sdl2:rect-y (pos suit)) (random-y-pos))
-    suit))
-
 
 ;;; INPUT HANDLING
 
@@ -711,8 +759,7 @@
     (t
      (let-when (mark (find-if (lambda (ped)
                                 (and (not (already-asked ped))
-                                     (< (dist ped *nance*)
-                                        (* 0.75 (comfort-rad ped)))))
+                                     (< (dist ped *nance*) 100)))
                               *pedestrians*))
        (stop-and-consider mark)))))
 
