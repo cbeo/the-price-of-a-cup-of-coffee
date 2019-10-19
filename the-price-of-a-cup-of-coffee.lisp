@@ -749,13 +749,12 @@
 
 
 (defun start ()
-
-  (play-track *cold-day-track*)
   (unwind-protect
        (sdl2:with-init (:everything)
          (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
            (sdl2:with-renderer (renderer win :flags '(:accelerated))
              (boot-up renderer)
+             (play-track *cold-day-track*)
              (sdl2:with-event-loop (:method :poll)
                (:keydown (:keysym keysym)
                          (if (sdl2:scancode= (sdl2:scancode-value keysym) :scancode-escape)
