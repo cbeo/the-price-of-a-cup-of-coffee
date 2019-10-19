@@ -654,8 +654,8 @@
   (setf (sdl2:rect-y (pos ped)) (random-y-pos))
   (setf (sdl2:rect-x (pos ped)) -49))
 
-(defvar *ped-hit-box* (sdl2:make-rect 0 0 64 40))
-(defvar *nance-hit-box* (sdl2:make-rect 0 0 64 40))
+(defvar *ped-hit-box* (sdl2:make-rect 0 0 64 32))
+(defvar *nance-hit-box* (sdl2:make-rect 0 0 64 32))
 
 (defun snap-hit-box-to (human hitbox)
   (setf (sdl2:rect-x hitbox) (x-pos human))
@@ -665,7 +665,45 @@
   (when *collision-on-p*
     (snap-hit-box-to ped *ped-hit-box*)
     (when (sdl2:has-intersect *ped-hit-box* *nance-hit-box*)
-      (print "collision detected!"))))
+      (run-collision ped))))
+
+(defun run-collision (ped)
+  (setf *collision-on-p* nil)
+  (setf *input-mode* nil)
+  (emote ped (choose-one "very-angry" "angry" "alarmed" "asshole" "death") 2000)
+  (emote *nance* (choose-one "angry" "alarmed" "incapacitated" "stressed") 2000)
+  (hopping-mad ped)
+  (with-slots (pos walk-vec) *nance*
+    (let ((now (sdl2:get-ticks))
+          (tx (+ (sdl2:rect-x pos) (* (x-direction ped) 80)))
+          (oy (sdl2:rect-y pos))
+          (ty (+ (sdl2:rect-y pos) -52)))
+      (setf (car walk-vec) 0)
+      (setf (cdr walk-vec) 0)
+
+      (push (animating :the 'sdl2:rect-x :of pos :to tx :at now :for 250) *tweens*)
+      (push (sequencing (:at now :targeting pos)
+             (animating :the 'sdl2:rect-y :to ty :by :quad-in :for 225)
+             (animating :the 'sdl2:rect-y :to oy :by :quad-out :for 225))
+            *tweens*)
+      (pause-then 1200
+                  (lambda ()
+                    (setf *collision-on-p* t)
+                    (setf *input-mode* :normal))))))
+
+
+(defun x-direction (person)
+  (case (face person)
+    ((facing-left walking-left) -1)
+    ((facing-right walking-right) 1)
+    (t 0)))
+
+(defun y-direction (person)
+  (case (face person)
+    ((facing-up walking-up) -1)
+    ((facing-down walking-down) 1)
+    (t 0)))
+
 
 
 (defmethod update ((ped pedestrian) time)
