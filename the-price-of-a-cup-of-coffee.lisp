@@ -469,6 +469,10 @@
            (apply 'all-p (cons arg (cdr preds))))
       t))
 
+(defun clear-keys-down ()
+  (setf *keys-down* (make-keys-down)))
+  
+
 (defun set-walk-vec-by-keysdown ()
   (with-slots (walk-vec walk-speed diag-walk-speed) *nance*
     (cond ((< 2 (number-of-dpad-keys-down))
@@ -670,6 +674,7 @@
 (defun run-collision (ped)
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
+  (clear-keys-down)
   (emote ped (choose-one "very-angry" "angry" "alarmed" "asshole" "death") 2000)
   (emote *nance* (choose-one "angry" "alarmed" "incapacitated" "stressed") 2000)
   (hopping-mad ped)
