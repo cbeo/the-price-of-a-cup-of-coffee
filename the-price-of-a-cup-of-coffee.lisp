@@ -2,34 +2,22 @@
 
 (in-package #:the-price-of-a-cup-of-coffee)
 
+
+;;; CONSTANTS
 (defparameter +window-width+ 1024)
 (defparameter +window-height+ 600)
 (defparameter +meter-bar-height+ 16)
 (defparameter +vert-min+ 32)
 (defparameter +vert-max+ (- +window-height+ 128 30))
 (defparameter +frame-delay+ (round (/ 1000 60)))
-
-(defvar *nance*)
-(defvar *pedestrians* nil)
-(defvar *to-render-by-y* nil)
-(defvar *on-coffee-break* nil)
-
-(defvar *tweens* nil)
-
-(defvar *expression-rect*
-  (sdl2:make-rect 0 0 50 50)
-  "used to render expressions.")
+(defparameter +home-base-y+ 36)
+(defparameter +home-base-x+ 292)
+(defparameter +coffee-cost+ 0.45)
+(defparameter +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
 
 
+;;; STUCTS AND CLASSES
 (defstruct keys-down left right up down action)
-(defvar *keys-down* (make-keys-down))
-
-(defvar *human-frame-pause* (/ 1000 4))
-(defun set-human-fps (n)
-  (setf *human-frame-pause* (/ 1000 n)))
-
-(defgeneric render (sprite renderer))
-(defgeneric update (thing time))
 
 (def-normal-class status-meter ()
   (color (list 0 0 0 255))
@@ -39,29 +27,58 @@
   max-width
   percent)
 
+(def-normal-class human ()
+  (paused nil)
+  (walk-vec (cons 0 0))
+  (walk-speed 6)
+  diag-walk-speed
+  expression       ;; nil or a string
+  pos
+  sheet
+  (faces ((lambda () +shared-faces+)))
+  (face 'facing-down)
+  (frame 0)
+  (next-frame-at 0))
+
+(def-normal-class hero (human)
+  (sick-p nil))
+
+(def-normal-class pedestrian (human)
+  (already-asked nil)
+  (comfort-rad 60)
+  (react-per-sec 4)
+  (next-react 0)
+  (anger 0.1)
+  (kindness 0.02)
+  (generosity 0.25)
+  (vulnerability 0.03))
+
+;;; GLOBALS
+
+(defvar *nance*)
+(defvar *pedestrians* nil)
+(defvar *to-render-by-y* nil)
+(defvar *on-coffee-break* nil)
 (defvar *status-meter-decoration-rect* (sdl2:make-rect 0 0 48 48))
+(defvar *space-clamping-p* t)
+(defvar *tweens* nil)
+(defvar *sickness-rect* (sdl2:make-rect 0 0 40 40))
+(defvar *collision-on-p* t)
+(defvar *input-mode* :normal) ;; (or :normal :start nil)
+(defvar *collision-count* 0)
+(defvar *ped-hit-box* (sdl2:make-rect 0 0 64 32))
+(defvar *nance-hit-box* (sdl2:make-rect 0 0 64 32))
+(defvar *fading-out* nil)
+(defvar *door-open-p* nil)
+(defvar *expression-rect*
+  (sdl2:make-rect 0 0 50 50)
+  "used to render expressions.")
+(defvar *keys-down* (make-keys-down))
+(defvar *human-frame-pause* (/ 1000 4))
 
-(defmethod render ((meter status-meter) renderer)
-  (with-slots (color shape filled-shape decoration) meter
-    (destructuring-bind (r g b a) color
-      (sdl2:set-render-draw-color renderer r g b 100)
-      (sdl2:render-fill-rect renderer shape)
-      (sdl2:set-render-draw-color renderer r g b a)
-      (sdl2:render-fill-rect renderer filled-shape)
-      (sdl2:set-render-draw-color renderer r g b 255)
-      (sdl2:render-draw-rect renderer shape))
-    (setf (sdl2:rect-x *status-meter-decoration-rect*)
-          (+ -32 (sdl2:rect-x shape) (sdl2:rect-width shape)))
-    (setf (sdl2:rect-y *status-meter-decoration-rect*)
-          (+ -16 (sdl2:rect-y shape)))
-    (sdl2:render-copy renderer *expression-texture*
-                      :source-rect (get-expression decoration)
-                      :dest-rect *status-meter-decoration-rect*)))
+(defun set-human-fps (n)
+  (setf *human-frame-pause* (/ 1000 n)))
 
-(defmethod (setf percent) :after (new-val (meter status-meter))
-  (with-slots (filled-shape max-width percent) meter
-    (setf percent (clamp new-val 0.0 1.0))
-    (setf (sdl2:rect-width filled-shape) (round (* max-width percent)))))
 
 (let* ((padding 8)
        (y (- +window-height+ +meter-bar-height+ padding))
@@ -98,69 +115,13 @@
                    :percent 0.0
                    :max-width width)))
 
-(defmethod render :after ((money-meter (eql *money-meter*)) renderer)
-  (let ((x (round (* +coffee-cost+ (max-width money-meter)))))
-    (setf (sdl2:rect-x *status-meter-decoration-rect*) x)
-    (sdl2:render-copy renderer *expression-texture*
-                      :source-rect (get-expression "coffee")
-                      :dest-rect *status-meter-decoration-rect*)))
+;;; GENERICS
 
-(defmethod (setf percent) :after (new-val (meter (eql *stress-meter*)))
-  (when (<= 1.0 new-val)
-    (stressed-out-sequence)))
-
-(defun get-sick ()
-  (unless (sick-p *nance*)
-    (setf (sick-p *nance*) t)
-    (setf (walk-speed *nance*)
-          (round (* 0.5 (walk-speed *nance*))))))
-
-(defun get-better ()
-  (when (sick-p *nance*)
-    (setf (sick-p *nance*) nil)
-    (setf (walk-speed *nance*)
-          (round (* 2 (walk-speed *nance*))))))
+(defgeneric render (sprite renderer))
+(defgeneric update (thing time))
 
 
-(def-normal-class human ()
-  (paused nil)
-  (walk-vec (cons 0 0))
-  (walk-speed 6)
-  diag-walk-speed
-  expression       ;; nil or a string
-  pos
-  sheet
-  (faces ((lambda () +shared-faces+)))
-  (face 'facing-down)
-  (frame 0)
-  (next-frame-at 0))
-
-(defun x-pos (person)
-  (sdl2:rect-x (pos person)))
-
-(defun y-pos (person)
-  (sdl2:rect-y (pos person)))
-
-(defun (setf y-pos) (new-val person)
-  (setf (sdl2:rect-y (pos person)) new-val))
-
-(defun walking-p (human)
-  (not (standing-p human)))
-
-(defun standing-p (human)
-  (and (zerop (car (walk-vec human)))
-       (zerop (cdr (walk-vec human)))))
-
-
-(defmethod (setf walk-speed) :after (newval (human human))
-  (setf (diag-walk-speed human)
-        (round (sqrt (* 0.5 (* newval newval))))))
-
-(defun get-frame-rect (human)
-  (with-slots (faces face frame) human
-    (let ((seq (funcall face faces)))
-      (aref seq (mod frame (length seq))))))
-
+;;;; INITIALIZERS
 
 (defmethod initialize-instance :after ((human human) &key)
   (setf (walk-speed human) 6)
@@ -171,27 +132,34 @@
                             (sdl2:rect-width rect)
                             (sdl2:rect-height rect))))))
 
-(defvar *space-clamping-p* t)
-
-(defmethod update ((human human) ticks)
-  (with-slots (frame next-frame-at faces face walk-vec pos) human
-    (incf (sdl2:rect-x pos) (car walk-vec))
-    (setf (sdl2:rect-y pos)
-          (if *space-clamping-p*
-              (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
-                     +vert-min+ +vert-max+)
-              (+ (sdl2:rect-y pos) (cdr walk-vec))))
-    (when (<= next-frame-at ticks)
-      (setf next-frame-at (max (+ *human-frame-pause* next-frame-at) ticks))
-      (setf frame (mod (1+ frame) (length (funcall face faces)))))))
 
 
-(defun set-expression-rect (human)
-  (setf (sdl2:rect-x *expression-rect*)
-        (sdl2:rect-x (pos human)))
-  (setf (sdl2:rect-y *expression-rect*)
-        (- (sdl2:rect-y (pos human))
-           (sdl2:rect-height *expression-rect*))))
+;;; RENDERING IMPLEMENTATIONS
+
+(defmethod render ((meter status-meter) renderer)
+  (with-slots (color shape filled-shape decoration) meter
+    (destructuring-bind (r g b a) color
+      (sdl2:set-render-draw-color renderer r g b 100)
+      (sdl2:render-fill-rect renderer shape)
+      (sdl2:set-render-draw-color renderer r g b a)
+      (sdl2:render-fill-rect renderer filled-shape)
+      (sdl2:set-render-draw-color renderer r g b 255)
+      (sdl2:render-draw-rect renderer shape))
+    (setf (sdl2:rect-x *status-meter-decoration-rect*)
+          (+ -32 (sdl2:rect-x shape) (sdl2:rect-width shape)))
+    (setf (sdl2:rect-y *status-meter-decoration-rect*)
+          (+ -16 (sdl2:rect-y shape)))
+    (sdl2:render-copy renderer *expression-texture*
+                      :source-rect (get-expression decoration)
+                      :dest-rect *status-meter-decoration-rect*)))
+
+
+(defmethod render :after ((money-meter (eql *money-meter*)) renderer)
+  (let ((x (round (* +coffee-cost+ (max-width money-meter)))))
+    (setf (sdl2:rect-x *status-meter-decoration-rect*) x)
+    (sdl2:render-copy renderer *expression-texture*
+                      :source-rect (get-expression "coffee")
+                      :dest-rect *status-meter-decoration-rect*)))
 
 (defmethod render ((human human) renderer)
   (with-slots (pos sheet faces face frame expression) human
@@ -206,19 +174,6 @@
                         :dest-rect *expression-rect*
                         :source-rect source-rect))))
 
-(defun emote (who emotion &optional duration)
-  (setf (expression who) emotion)
-  (when duration
-    (let ((pause (pause duration (sdl2:get-ticks))))
-      (setf (on-complete pause) (lambda () (setf (expression who) nil)))
-      (push pause *tweens*))))
-
-(def-normal-class hero (human)
-  (sick-p nil))
-
-
-(defvar *sickness-rect* (sdl2:make-rect 0 0 40 40))
-
 (defmethod render :after ((nance hero) renderer)
   (when (sick-p nance)
     (setf (sdl2:rect-x *sickness-rect*) (- (x-pos nance) 20))
@@ -227,7 +182,147 @@
                       :source-rect (get-expression "nauseated")
                       :dest-rect *sickness-rect*)))
 
+(defmethod render ((game (eql :game)) renderer)
+  ;; clear screen
+  (sdl2:set-render-draw-color renderer 80 80 80 255)
+  (sdl2:render-clear renderer)
 
+  (sdl2:render-copy renderer *backdrop-texture*)
+  (sdl2:render-copy renderer *sliding-door-texture*
+                    :dest-rect *sliding-door-position*)
+
+  ;; render characters and other objects
+  (setf *to-render-by-y*
+        (sort *to-render-by-y* #'< :key #'y-pos))
+  (dolist (person *to-render-by-y*)
+    (render person renderer))
+
+  ;; render meters
+  (sdl2:set-render-draw-blend-mode renderer sdl2-ffi:+sdl-blendmode-blend+)
+  (render *money-meter* renderer)
+  (render *stress-meter* renderer)
+  (render *cold-meter* renderer)
+
+  (when *fading-out*
+    (sdl2:set-render-draw-color renderer 0 0 0 (car *fading-out*))
+    (sdl2:render-fill-rect renderer +screen-sized-rect+))
+
+  ;; present
+  (sdl2:render-present renderer))
+
+
+;;; UPDATE IMPLEMENTATIONS
+
+(defmethod update ((human human) ticks)
+  (with-slots (frame next-frame-at faces face walk-vec pos) human
+    (incf (sdl2:rect-x pos) (car walk-vec))
+    (setf (sdl2:rect-y pos)
+          (if *space-clamping-p*
+              (clamp (+ (sdl2:rect-y pos) (cdr walk-vec))
+                     +vert-min+ +vert-max+)
+              (+ (sdl2:rect-y pos) (cdr walk-vec))))
+    (when (<= next-frame-at ticks)
+      (setf next-frame-at (max (+ *human-frame-pause* next-frame-at) ticks))
+      (setf frame (mod (1+ frame) (length (funcall face faces)))))))
+
+(defmethod update :after ((hero hero) ticks)
+  (with-slots (pos) hero
+    (setf (sdl2:rect-x pos)
+          (mod (sdl2:rect-x pos) +window-width+))
+    (snap-hit-box-to hero *nance-hit-box*)
+    (if (in-front-of-door-p)
+        (when (not *door-open-p*)
+          (open-door))
+        (when *door-open-p*
+          (close-door)))))
+
+(defmethod update ((ped pedestrian) time)
+  (unless (paused ped)
+    (call-next-method))
+  (with-slots (pos react-per-sec next-react) ped
+    (when (<= next-react time)
+      ;; update react check
+      (setf next-react
+            (max time
+                 (round (+ next-react
+                           (/ 1000 react-per-sec)))))
+      (adjust-walk-relative-to ped *nance*))
+
+    (collision-check ped)
+
+    (when (or (< (sdl2:rect-x pos) -50)
+              (< +window-width+ (sdl2:rect-x pos)))
+      (reset-pedestrian ped))))
+
+(defmethod update ((game (eql :game)) time)
+  (update *nance* time)
+
+  (update-tweens time)
+
+  (dolist (person *pedestrians*)
+    (update person time))
+
+  (unless *on-coffee-break*
+    (if (walking-p *nance*)
+        (unless (sick-p *nance*)
+          (decf (percent *cold-meter*) 0.0004))
+        (progn
+          (incf (percent *cold-meter*) 0.0003)
+          (unless (sick-p *nance*)
+            (decf (percent *stress-meter*) 0.0003))))))
+
+
+;;; ACCESSORS
+
+(defmethod (setf percent) :after (new-val (meter status-meter))
+  (with-slots (filled-shape max-width percent) meter
+    (setf percent (clamp new-val 0.0 1.0))
+    (setf (sdl2:rect-width filled-shape) (round (* max-width percent)))))
+
+(defmethod (setf percent) :after (new-val (meter (eql *stress-meter*)))
+  (when (<= 1.0 new-val)
+    (stressed-out-sequence)))
+
+
+(defmethod (setf walk-speed) :after (newval (human human))
+  (setf (diag-walk-speed human)
+        (round (sqrt (* 0.5 (* newval newval))))))
+
+(defun x-pos (person)
+  (sdl2:rect-x (pos person)))
+
+(defun y-pos (person)
+  (sdl2:rect-y (pos person)))
+
+(defun (setf y-pos) (new-val person)
+  (setf (sdl2:rect-y (pos person)) new-val))
+
+;;;; PREDICATES
+
+(defun walking-p (human)
+  (not (standing-p human)))
+
+(defun standing-p (human)
+  (and (zerop (car (walk-vec human)))
+       (zerop (cdr (walk-vec human)))))
+
+(defun in-front-of-door-p ()
+  (with-slots (pos) *nance*
+    (and (<= +sliding-door-closed-x+
+             (sdl2:rect-x pos)
+             (+ +sliding-door-closed-x+
+                (sdl2:rect-width *sliding-door-position*)))
+         (<= (sdl2:rect-y pos) (+ +vert-min+ 40)))))
+
+(defun enough-for-coffee-p ()
+  (<= +coffee-cost+ (percent *money-meter*)))
+
+(defun enough-for-food-p ()
+  (<= 1.0 (percent *money-meter*)))
+
+
+
+;;;; STATE CONTROL
 
 (defun make-sick ()
   (unless (sick-p *nance*)
@@ -252,97 +347,6 @@
   (sickness-check)
   (pause-then 3000 #'check-sickness-loop))
 
-(defvar *collision-on-p* t)
-(defvar *input-mode* :normal) ;; (or :normal :start nil)
-
-(defun stressed-out-sequence ()
-  (setf *collision-on-p* nil)
-  (setf *input-mode* nil)
-  (emote *nance* "breakdown")
-  (with-slots (pos face) *nance*
-    (let ((move-to-home-base
-            (sequencing (:at (sdl2:get-ticks) :targeting pos)
-              (grouping (:for 2000)
-                (animating :the 'sdl2:rect-x :to +home-base-x+)
-                (animating :the 'sdl2:rect-y :to +home-base-y+))
-              (take-action (lambda ()
-                             (setf face 'facing-down)
-                             (emote *nance* "incapacitated")))
-              (animate *stress-meter* 'percent 0.25
-                       :rounding nil :duration 4000 :ease #'quad-in-out
-                       :on-complete (lambda ()
-                                      (emote *nance* nil)
-                                      (setf *collision-on-p* t)
-                                      (setf *input-mode* :normal))))))
-      (push move-to-home-base *tweens*))))
-
-(defun in-front-of-door-p ()
-  (with-slots (pos) *nance*
-    (and (<= +sliding-door-closed-x+
-             (sdl2:rect-x pos)
-             (+ +sliding-door-closed-x+
-                (sdl2:rect-width *sliding-door-position*)))
-         (<= (sdl2:rect-y pos) (+ +vert-min+ 40)))))
-
-(defmethod update :after ((hero hero) ticks)
-  (with-slots (pos) hero
-    (setf (sdl2:rect-x pos)
-          (mod (sdl2:rect-x pos) +window-width+))
-    (snap-hit-box-to hero *nance-hit-box*)
-   (if (in-front-of-door-p)
-        (when (not *door-open-p*)
-          (open-door))
-        (when *door-open-p*
-          (close-door)))))
-
-(def-normal-class pedestrian (human)
-  (already-asked nil)
-  (comfort-rad 60)
-  (react-per-sec 4)
-  (next-react 0)
-  (anger 0.1)
-  (kindness 0.02)
-  (generosity 0.25)
-  (vulnerability 0.03))
-
-(defun set-walk-face-by-walk-vec (person)
-  (with-slots (walk-vec face) person
-    (cond
-      ((and (zerop (cdr walk-vec)) (plusp (car walk-vec)))
-       (setf face 'walking-right))
-
-      ((and (zerop (cdr walk-vec)) (minusp (car walk-vec)))
-       (setf face 'walking-left))
-
-      ((minusp (cdr walk-vec))  (setf face 'walking-up))
-
-      ((plusp (cdr walk-vec))  (setf face 'walking-down))
-
-      (t nil)))) ;; return nil if the character is standing
-
-(defun random-y-pos ()
-  (+ +vert-min+ (random (- +vert-max+ +vert-min+))))
-
-(defun make-suit ()
-  (let ((suit
-          (make-instance 'pedestrian
-                         :sheet *suit-texture*
-                         :comfort-rad 120
-                         :anger 0.2
-                         :kindness 0.5
-                         :generosity 0.25
-                         :vulnerability 0.07
-                         )))
-    (setf (walk-speed suit) 5)
-    (setf (walk-vec suit) (cons (walk-speed suit) 0))
-
-    (set-walk-face-by-walk-vec suit)
-    (setf (sdl2:rect-y (pos suit)) (random-y-pos))
-    suit))
-
-(defparameter +home-base-y+ 36)
-(defparameter +home-base-x+ 292)
-
 (defun boot-up (renderer)
   ;; cleanup from previous calls to start - used while testing
   (setf *pedestrians* nil)
@@ -364,14 +368,47 @@
   (push (car *pedestrians*) *to-render-by-y*))
 
 
-(defun choose-one (&rest options)
-  (nth (random (length options)) options))
+;;;; ANIMATIONS AND SEQUENCES
+
+(defun update-tweens (time)
+  (dolist (tween *tweens*)
+    (run-tween tween time))
+  (setf *tweens*
+        (delete-if ($ #'tween-finished-p _ time)
+                   *tweens*)))
+
+(defun emote (who emotion &optional duration)
+  (setf (expression who) emotion)
+  (when duration
+    (let ((pause (pause duration (sdl2:get-ticks))))
+      (setf (on-complete pause) (lambda () (setf (expression who) nil)))
+      (push pause *tweens*))))
 
 (defun pause-then (time complete)
   (let ((pause (pause time (sdl2:get-ticks))))
     (setf (on-complete pause) complete)
     (push pause *tweens*)))
 
+(defun stressed-out-sequence ()
+  (setf *collision-on-p* nil)
+  (setf *input-mode* nil)
+  (emote *nance* "breakdown")
+  (with-slots (pos face) *nance*
+    (let ((move-to-home-base
+            (sequencing (:at (sdl2:get-ticks) :targeting pos)
+              (grouping (:for 2000)
+                (animating :the 'sdl2:rect-x :to +home-base-x+)
+                (animating :the 'sdl2:rect-y :to +home-base-y+))
+              (take-action (lambda ()
+                             (setf face 'facing-down)
+                             (emote *nance* "incapacitated")))
+              (animate *stress-meter* 'percent 0.25
+                       :rounding nil :duration 4000 :ease #'quad-in-out
+                       :on-complete (lambda ()
+                                      (emote *nance* nil)
+                                      (setf *collision-on-p* t)
+                                      (setf *input-mode* :normal))))))
+      (push move-to-home-base *tweens*))))
 
 (defun stop-and-consider (pedestrian)
   (with-slots (walk-vec already-asked expression anger kindness generosity vulnerability) pedestrian
@@ -409,13 +446,6 @@
                   (cdr vec))))
     (push pause *tweens*)))
 
-(defparameter +coffee-cost+ 0.45)
-
-(defun enough-for-coffee-p ()
-  (<= +coffee-cost+ (percent *money-meter*)))
-
-(defun enough-for-food-p ()
-  (<= 1.0 (percent *money-meter*)))
 
 (defun get-coffee! ()
   (decf (percent *money-meter*) +coffee-cost+)
@@ -435,6 +465,80 @@
        (setf *collision-on-p* t)
        (setf *on-coffee-break* nil)))))
 
+(defun collision-check (ped)
+  (when *collision-on-p*
+    (snap-hit-box-to ped *ped-hit-box*)
+    (when (sdl2:has-intersect *ped-hit-box* *nance-hit-box*)
+      (run-collision ped))))
+
+
+(defun run-collision (ped)
+  (setf *collision-on-p* nil)
+  (setf *input-mode* nil)
+  (clear-keys-down)
+  (emote ped (choose-one "very-angry" "angry" "alarmed" "asshole" "death") 2000)
+  (emote *nance* (choose-one "angry" "alarmed" "incapacitated" "stressed") 2000)
+  (hopping-mad ped)
+  (with-slots (pos walk-vec) *nance*
+    (let ((now (sdl2:get-ticks))
+          (tx (+ (sdl2:rect-x pos) (* (x-direction ped) 80)))
+          (oy (sdl2:rect-y pos))
+          (ty (+ (sdl2:rect-y pos) -52)))
+      (setf (car walk-vec) 0)
+      (setf (cdr walk-vec) 0)
+
+      (push (animating :the 'sdl2:rect-x :of pos :to tx :at now :for 250) *tweens*)
+      (push (sequencing (:at now :targeting pos)
+             (animating :the 'sdl2:rect-y :to ty :by :quad-in :for 225)
+             (animating :the 'sdl2:rect-y :to oy :by :quad-out :for 225))
+            *tweens*)
+      (incf *collision-count*)
+      (if (< *collision-count* 3)
+          (pause-then 1200
+                      (lambda ()
+                        (setf *collision-on-p* t)
+                        (setf *input-mode* :normal)
+                        (incf (percent *stress-meter*) (* 5 (vulnerability ped)))))
+          (pause-then 1000 #'game-over)))))
+
+
+
+(defun open-door ()
+  (unless *door-open-p*
+    (setf *door-open-p* t)
+    (push (animate *sliding-door-position* 'sdl2:rect-x +sliding-door-open-x+
+                   :start (sdl2:get-ticks)
+                   :ease #'animise:cubic-in-out
+                   :duration 500)
+          *tweens*)))
+
+(defun close-door ()
+  (when *door-open-p*
+    (setf *door-open-p* nil)
+    (push (animate *sliding-door-position* 'sdl2:rect-x +sliding-door-closed-x+
+                   :start (sdl2:get-ticks)
+                   :ease #'animise:cubic-in-out
+                   :duration 500)
+          *tweens*)))
+
+;; TODO FIX STRANGE BUG IN FINITE LOOPING BEHAVIOR IN ANIMISE
+(defun hopping-mad (who)
+  (with-slots (pos) who
+    (let* ((current-y (sdl2:rect-y pos))
+           (dest-y (- current-y 56))
+           (anim
+             (sequencing (:at (sdl2:get-ticks) :targeting pos)
+               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
+               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
+               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
+               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
+               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
+               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
+               )))
+      (push anim *tweens*))))
+
+
+
 (defun clear-level ()
   ;; fade out to black with happy music playing
   ;; change music
@@ -448,6 +552,150 @@
 (defun get-food! ()
   (print "Getting Food!!!")
   (clear-level))
+
+
+(defun game-over ()
+  (setf *space-clamping-p* nil)
+  (setf *collision-on-p* nil)
+  (setf *input-mode* nil)
+  (clear-keys-down)
+
+  (dolist (p *pedestrians*) (setf (paused p) t))
+
+  (let ((cop1 (make-instance 'human
+                             :faces *cop-animation-faces*
+                             :sheet *cop1-texture*))
+        (cop2 (make-instance 'human
+                             :faces *cop-animation-faces*
+                             :sheet *cop2-texture*))
+        (nance-y (y-pos *nance*)))
+
+    (push cop1 *to-render-by-y*)
+    (push cop2 *to-render-by-y*)
+    (push cop1 *pedestrians*)
+    (push cop2 *pedestrians*)
+
+    (setf (pos cop1)
+          (sdl2:make-rect (- (x-pos *nance*) 64) 620 64 128))
+    (setf (pos cop2)
+          (sdl2:make-rect (+ (x-pos *nance*) 64) 620 64 128))
+
+    (push (sequencing (:at (sdl2:get-ticks))
+            (grouping (:for 2600)
+              (animating :the 'y-pos :of cop1 :to nance-y)
+              (animating :the 'y-pos :of cop2 :to nance-y))
+            (grouping (:for 2600)
+              (animating :the 'y-pos :of cop1 :to 620)
+              (animating :the 'y-pos :of cop2 :to 620)
+              (animating :the 'y-pos :of *nance* :to 620))
+            (take-action
+             (lambda ()
+               (setf *to-render-by-y* (delete *nance* *to-render-by-y*))
+               (dolist (p *pedestrians*) (setf (paused p) nil))
+               (end-fade-out))))
+          *tweens*)))
+
+(defun fade-out ()
+  (setf *fading-out* (list 0))
+  (push (animate *fading-out* 'car 255 :start (sdl2:get-ticks) :duration 3000)
+        *tweens*))
+
+(defun end-fade-out ()
+  (setf *fading-out* (list 0))
+  (push (animate *fading-out* 'car 200 :start (sdl2:get-ticks) :duration 15000)
+        *tweens*))
+
+
+
+;;;; HELPERS
+
+(defun reset-pedestrian (ped)
+  (setf (already-asked ped) nil)
+  (setf (sdl2:rect-y (pos ped)) (random-y-pos))
+  (setf (sdl2:rect-x (pos ped)) -49))
+
+(defun snap-hit-box-to (human hitbox)
+  (setf (sdl2:rect-x hitbox) (x-pos human))
+  (setf (sdl2:rect-y hitbox) (+ (y-pos human) 88)))
+
+(defun get-frame-rect (human)
+  (with-slots (faces face frame) human
+    (let ((seq (funcall face faces)))
+      (aref seq (mod frame (length seq))))))
+
+(defun set-expression-rect (human)
+  (setf (sdl2:rect-x *expression-rect*)
+        (sdl2:rect-x (pos human)))
+  (setf (sdl2:rect-y *expression-rect*)
+        (- (sdl2:rect-y (pos human))
+           (sdl2:rect-height *expression-rect*))))
+
+(defun set-walk-face-by-walk-vec (person)
+  (with-slots (walk-vec face) person
+    (cond
+      ((and (zerop (cdr walk-vec)) (plusp (car walk-vec)))
+       (setf face 'walking-right))
+
+      ((and (zerop (cdr walk-vec)) (minusp (car walk-vec)))
+       (setf face 'walking-left))
+
+      ((minusp (cdr walk-vec))  (setf face 'walking-up))
+
+      ((plusp (cdr walk-vec))  (setf face 'walking-down))
+
+      (t nil)))) ;; return nil if the character is standing
+
+(defun random-y-pos ()
+  (+ +vert-min+ (random (- +vert-max+ +vert-min+))))
+
+(defun choose-one (&rest options)
+  (nth (random (length options)) options))
+
+(defun any-p (arg &rest preds)
+  (and preds
+       (or (funcall (car preds) arg)
+           (apply 'any-p (cons arg (cdr preds))))))
+
+(defun all-p (arg &rest preds)
+  (if preds
+      (and (funcall (car preds) arg)
+           (apply 'all-p (cons arg (cdr preds))))
+      t))
+
+(defun x-direction (person)
+  (case (face person)
+    ((facing-left walking-left) -1)
+    ((facing-right walking-right) 1)
+    (t 0)))
+
+(defun y-direction (person)
+  (case (face person)
+    ((facing-up walking-up) -1)
+    ((facing-down walking-down) 1)
+    (t 0)))
+
+
+;;;; CONSTRUCTORS
+
+(defun make-suit ()
+  (let ((suit
+          (make-instance 'pedestrian
+                         :sheet *suit-texture*
+                         :comfort-rad 120
+                         :anger 0.2
+                         :kindness 0.5
+                         :generosity 0.25
+                         :vulnerability 0.07
+                         )))
+    (setf (walk-speed suit) 5)
+    (setf (walk-vec suit) (cons (walk-speed suit) 0))
+
+    (set-walk-face-by-walk-vec suit)
+    (setf (sdl2:rect-y (pos suit)) (random-y-pos))
+    suit))
+
+
+;;; INPUT HANDLING
 
 (defun action-key-pressed ()
   (cond
@@ -467,18 +715,6 @@
                                         (* 0.75 (comfort-rad ped)))))
                               *pedestrians*))
        (stop-and-consider mark)))))
-
-
-(defun any-p (arg &rest preds)
-  (and preds
-    (or (funcall (car preds) arg)
-        (apply 'any-p (cons arg (cdr preds))))))
-
-(defun all-p (arg &rest preds)
-  (if preds
-      (and (funcall (car preds) arg)
-           (apply 'all-p (cons arg (cdr preds))))
-      t))
 
 (defun clear-keys-down ()
   (setf *keys-down* (make-keys-down)))
@@ -529,7 +765,6 @@
           (t (setf (car walk-vec) 0)
              (setf (cdr walk-vec) 0)))))
 
-
 (defun add-walk-hero-left ()
   (setf (face *nance*) 'walking-left)
   (setf (frame *nance*) 0)
@@ -574,14 +809,12 @@
     (setf (face *nance*) 'facing-down)
     (setf (frame *nance*) 0)))
 
-
 (defun number-of-dpad-keys-down ()
    (let ((c 0))
      (dolist (fn '(keys-down-left keys-down-right keys-down-up keys-down-down))
         (when (funcall fn *keys-down*)
           (incf c)))
      c))
-
 
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
@@ -608,7 +841,6 @@
                            (setf (keys-down-down *keys-down*) t)
                            (add-walk-hero-down))))))))
 
-
 (defun handle-keyup (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (case *input-mode*
@@ -627,12 +859,6 @@
          (:scancode-down (setf (keys-down-down *keys-down*) nil)
                          (rem-walk-hero-down)))))))
 
-(defun update-tweens (time)
-  (dolist (tween *tweens*)
-    (run-tween tween time))
-  (setf *tweens*
-        (delete-if ($ #'tween-finished-p _ time)
-                   *tweens*)))
 
 
 (defun dist (person1 person2)
@@ -663,195 +889,14 @@
     (set-walk-face-by-walk-vec person1)))
 
 
-(defun reset-pedestrian (ped)
-  (setf (already-asked ped) nil)
-  (setf (sdl2:rect-y (pos ped)) (random-y-pos))
-  (setf (sdl2:rect-x (pos ped)) -49))
-
-(defvar *ped-hit-box* (sdl2:make-rect 0 0 64 32))
-(defvar *nance-hit-box* (sdl2:make-rect 0 0 64 32))
-
-(defun snap-hit-box-to (human hitbox)
-  (setf (sdl2:rect-x hitbox) (x-pos human))
-  (setf (sdl2:rect-y hitbox) (+ (y-pos human) 88)))
-
-(defun collision-check (ped)
-  (when *collision-on-p*
-    (snap-hit-box-to ped *ped-hit-box*)
-    (when (sdl2:has-intersect *ped-hit-box* *nance-hit-box*)
-      (run-collision ped))))
-
-(defvar *collision-count* 0)
-
-(defun run-collision (ped)
-  (setf *collision-on-p* nil)
-  (setf *input-mode* nil)
-  (clear-keys-down)
-  (emote ped (choose-one "very-angry" "angry" "alarmed" "asshole" "death") 2000)
-  (emote *nance* (choose-one "angry" "alarmed" "incapacitated" "stressed") 2000)
-  (hopping-mad ped)
-  (with-slots (pos walk-vec) *nance*
-    (let ((now (sdl2:get-ticks))
-          (tx (+ (sdl2:rect-x pos) (* (x-direction ped) 80)))
-          (oy (sdl2:rect-y pos))
-          (ty (+ (sdl2:rect-y pos) -52)))
-      (setf (car walk-vec) 0)
-      (setf (cdr walk-vec) 0)
-
-      (push (animating :the 'sdl2:rect-x :of pos :to tx :at now :for 250) *tweens*)
-      (push (sequencing (:at now :targeting pos)
-             (animating :the 'sdl2:rect-y :to ty :by :quad-in :for 225)
-             (animating :the 'sdl2:rect-y :to oy :by :quad-out :for 225))
-            *tweens*)
-      (incf *collision-count*)
-      (if (< *collision-count* 3)
-          (pause-then 1200
-                      (lambda ()
-                        (setf *collision-on-p* t)
-                        (setf *input-mode* :normal)
-                        (incf (percent *stress-meter*) (* 5 (vulnerability ped)))))
-          (pause-then 1000 #'game-over)))))
-
-
-(defun game-over ()
-  (setf *space-clamping-p* nil)
-  (setf *collision-on-p* nil)
-  (setf *input-mode* nil)
-  (clear-keys-down)
-
-  (dolist (p *pedestrians*) (setf (paused p) t))
-
-  (let ((cop1 (make-instance 'human
-                             :faces *cop-animation-faces*
-                             :sheet *cop1-texture*))
-        (cop2 (make-instance 'human
-                             :faces *cop-animation-faces*
-                             :sheet *cop2-texture*))
-        (nance-y (y-pos *nance*)))
-
-    (push cop1 *to-render-by-y*)
-    (push cop2 *to-render-by-y*)
-    (push cop1 *pedestrians*)
-    (push cop2 *pedestrians*)
-
-    (setf (pos cop1)
-          (sdl2:make-rect (- (x-pos *nance*) 64) 620 64 128))
-    (setf (pos cop2)
-          (sdl2:make-rect (+ (x-pos *nance*) 64) 620 64 128))
-
-    (push (sequencing (:at (sdl2:get-ticks))
-            (grouping (:for 2600)
-              (animating :the 'y-pos :of cop1 :to nance-y)
-              (animating :the 'y-pos :of cop2 :to nance-y))
-            (grouping (:for 2600)
-              (animating :the 'y-pos :of cop1 :to 620)
-              (animating :the 'y-pos :of cop2 :to 620)
-              (animating :the 'y-pos :of *nance* :to 620))
-            (take-action
-             (lambda ()
-               (setf *to-render-by-y* (delete *nance* *to-render-by-y*))
-               (dolist (p *pedestrians*) (setf (paused p) nil))
-               (end-fade-out))))
-          *tweens*)))
-
-
-
-
-(defun x-direction (person)
-  (case (face person)
-    ((facing-left walking-left) -1)
-    ((facing-right walking-right) 1)
-    (t 0)))
-
-(defun y-direction (person)
-  (case (face person)
-    ((facing-up walking-up) -1)
-    ((facing-down walking-down) 1)
-    (t 0)))
-
-(defmethod update ((ped pedestrian) time)
-  (unless (paused ped)
-    (call-next-method))
-  (with-slots (pos react-per-sec next-react) ped
-    (when (<= next-react time)
-      ;; update react check
-      (setf next-react
-            (max time
-                 (round (+ next-react
-                           (/ 1000 react-per-sec)))))
-      (adjust-walk-relative-to ped *nance*))
-
-    (collision-check ped)
-
-    (when (or (< (sdl2:rect-x pos) -50)
-              (< +window-width+ (sdl2:rect-x pos)))
-      (reset-pedestrian ped))))
-
-(defmethod update ((game (eql :game)) time)
-(update *nance* time)
-
-  (update-tweens time)
-
-  (dolist (person *pedestrians*)
-    (update person time))
-
-  (unless *on-coffee-break*
-    (if (walking-p *nance*)
-        (unless (sick-p *nance*)
-          (decf (percent *cold-meter*) 0.0004))
-        (progn
-         (incf (percent *cold-meter*) 0.0003)
-         (unless (sick-p *nance*)
-           (decf (percent *stress-meter*) 0.0003))))))
-
-
-
-(defparameter +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
-(defvar *fading-out* nil)
-
-(defun fade-out ()
-  (setf *fading-out* (list 0))
-  (push (animate *fading-out* 'car 255 :start (sdl2:get-ticks) :duration 3000)
-        *tweens*))
-
-(defun end-fade-out ()
-  (setf *fading-out* (list 0))
-  (push (animate *fading-out* 'car 200 :start (sdl2:get-ticks) :duration 15000)
-        *tweens*))
-
-(defmethod render ((game (eql :game)) renderer)
-  ;; clear screen
-  (sdl2:set-render-draw-color renderer 80 80 80 255)
-  (sdl2:render-clear renderer)
-
-  (sdl2:render-copy renderer *backdrop-texture*)
-  (sdl2:render-copy renderer *sliding-door-texture*
-                    :dest-rect *sliding-door-position*)
-
-  ;; render characters and other objects
-  (setf *to-render-by-y*
-        (sort *to-render-by-y* #'< :key #'y-pos))
-  (dolist (person *to-render-by-y*)
-    (render person renderer))
-
-  ;; render meters
-  (sdl2:set-render-draw-blend-mode renderer sdl2-ffi:+sdl-blendmode-blend+)
-  (render *money-meter* renderer)
-  (render *stress-meter* renderer)
-  (render *cold-meter* renderer)
-
-  (when *fading-out*
-    (sdl2:set-render-draw-color renderer 0 0 0 (car *fading-out*))
-    (sdl2:render-fill-rect renderer +screen-sized-rect+))
-
-  ;; present
-  (sdl2:render-present renderer))
+;;; AUDIO
 
 (defun play-track (track)
   (harmony-simple:stop *current-track*)
   (harmony-simple:resume track)
   (setf *current-track* track))
 
+;;; GAME LOOP
 
 (defun start-debug ()
   (bt:make-thread (lambda () (swank:create-server :port 4006 :dont-close t)))
@@ -878,46 +923,3 @@
                (:quit () t)))))
     (free-assets)))
 
-
-(defun clear-pedestrians ()
-  (dolist (p *pedestrians*)
-    (setf *to-render-by-y*
-          (delete p *to-render-by-y*)))
-  (setf *pedestrians* nil))
-
-
-(defvar *door-open-p* nil)
-
-(defun open-door ()
-  (unless *door-open-p*
-    (setf *door-open-p* t)
-    (push (animate *sliding-door-position* 'sdl2:rect-x +sliding-door-open-x+
-                   :start (sdl2:get-ticks)
-                   :ease #'animise:cubic-in-out
-                   :duration 500)
-          *tweens*)))
-
-(defun close-door ()
-  (when *door-open-p*
-    (setf *door-open-p* nil)
-    (push (animate *sliding-door-position* 'sdl2:rect-x +sliding-door-closed-x+
-                   :start (sdl2:get-ticks)
-                   :ease #'animise:cubic-in-out
-                   :duration 500)
-          *tweens*)))
-
-;; TODO FIX STRANGE BUG IN FINITE LOOPING BEHAVIOR IN ANIMISE
-(defun hopping-mad (who)
-  (with-slots (pos) who
-    (let* ((current-y (sdl2:rect-y pos))
-           (dest-y (- current-y 56))
-           (anim
-             (sequencing (:at (sdl2:get-ticks) :targeting pos)
-               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
-               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
-               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
-               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
-               (animating :the 'sdl2:rect-y :to dest-y :for 200 :by :quading-out)
-               (animating :the 'sdl2:rect-y :to current-y :for 200 :by :elastic-out)
-               )))
-      (push anim *tweens*))))
