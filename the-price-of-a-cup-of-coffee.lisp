@@ -279,6 +279,10 @@
 (defun x-pos (person)
   (sdl2:rect-x (pos person)))
 
+(defun (setf x-pos) (new-val person)
+  (setf (sdl2:rect-x (pos person)) new-val))
+
+
 (defun y-pos (person)
   (sdl2:rect-y (pos person)))
 
@@ -362,7 +366,7 @@
                          :sheet *suit-texture*
                          :comfort-rad 120
                          :anger 0.1
-                         :kindness 0.1
+                         :kindness 0.12
                          :generosity 0.25
                          :vulnerability 0.04
                          )))
@@ -379,7 +383,7 @@
                          :sheet *normy-texture*
                          :comfort-rad 90
                          :anger 0.07
-                         :kindness 0.16
+                         :kindness 0.2
                          :generosity 0.2
                          :vulnerability 0.05)))
     (setf (walk-speed normy) 4)
@@ -393,7 +397,7 @@
                          :sheet *kid-texture*
                          :comfort-rad 80
                          :anger 0.04
-                         :kindness 0.7
+                         :kindness 0.8
                          :generosity 0.08
                          :vulnerability 0.09)))
     (setf (walk-speed kid) 3)
@@ -526,8 +530,8 @@
   (setf *on-coffee-break* t)
   (let ((now (sdl2:get-ticks))
         (dur 10000))
-    (push (animate *cold-meter* 'percent 0.0  :duration dur :start now :rounding nil) *tweens*)
-    (push (animate *stress-meter* 'percent 0.1  :duration dur :start now :rounding nil) *tweens*)
+    (push (animate *cold-meter* 'percent 0.25  :duration dur :start now :rounding nil) *tweens*)
+    (push (animate *stress-meter* 'percent 0.25  :duration dur :start now :rounding nil) *tweens*)
     (pause-then
      dur
      (lambda ()
@@ -607,25 +611,38 @@
                )))
       (push anim *tweens*))))
 
-(defun clear-level ()
-  ;; fade out to black with happy music playing
-  ;; change music
-  ;; reset nance position and stats
-  ;; reset collision count
-  (setf *collision-count* 0)
-  ;; fade in
-  ;; set input mode and collision mode
-  )
+
 
 (defun get-food! ()
-  (print "Getting Food!!!")
-  (clear-level))
+  (setf (percent *money-meter*) 0.0)
+  (play-track *looking-up-track*)
+  (emote *nance* (choose-one "food1" "food2" "food3" "food4" "food5"))
+  (setf *collision-on-p* 0)
+  (setf *collision-count* 0)
+  (setf *on-coffee-break* t)
+  (fade-out)
+  (let ((now (sdl2:get-ticks))
+        (dur 5000))
+    (push (animate *cold-meter* 'percent 0.0  :duration dur :start now :rounding nil) *tweens*)
+    (push (animate *stress-meter* 'percent 0.0  :duration dur :start now :rounding nil) *tweens*)
+    (pause-then dur
+                (lambda ()
+                  (fade-in)
+                  (setf *pedestrian-count* (* 2 *pedestrian-count*))
+                  (setf (x-pos *nance*) +home-base-x+)
+                  (setf (y-pos *nance*) +home-base-y+)
+                  (play-track *cold-day-track*)
+                  (emote *nance* nil)
+                  (setf *collision-on-p* t)
+                  (setf *on-coffee-break* nil)))))
+
 
 (defun game-over ()
   (setf *space-clamping-p* nil)
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
   (clear-keys-down)
+  (harmony-simple:stop *current-track*)
 
   (dolist (p *pedestrians*) (setf (paused p) t))
 
@@ -662,9 +679,17 @@
                (end-fade-out))))
           *tweens*)))
 
+(defun fade-in ()
+  (push (animate *fading-out* 'car 0
+                 :start (sdl2:get-ticks) :duration 1000
+                 :on-complete (lambda () (setf *fading-out* nil)))
+        *tweens*))
+
+
+
 (defun fade-out ()
   (setf *fading-out* (list 0))
-  (push (animate *fading-out* 'car 255 :start (sdl2:get-ticks) :duration 3000)
+  (push (animate *fading-out* 'car 255 :start (sdl2:get-ticks) :duration 5000)
         *tweens*))
 
 (defun end-fade-out ()
@@ -713,7 +738,7 @@
       (t nil)))) ;; return nil if the character is standing
 
 (defun random-y-pos ()
-  (+ +vert-min+ (random (- +vert-max+ +vert-min+))))
+  (+ +vert-min+ 64 (random (- +vert-max+ +vert-min+ 64))))
 
 (defun choose-one (&rest options)
   (nth (random (length options)) options))
@@ -750,12 +775,13 @@
     ((and (not *on-coffee-break*)
           (in-front-of-door-p)
           (eql 'facing-up (face *nance*))
-          (enough-for-coffee-p))
-     (get-coffee!))
-    ((and (in-front-of-door-p)
-          (eql 'facing-up (face *nance*))
           (enough-for-food-p))
      (get-food!))
+    ((and (not *on-coffee-break*)
+          (in-front-of-door-p)
+          (eql 'facing-up (face *nance*))
+          (enough-for-coffee-p))
+     (get-coffee!))
     (t
      (let-when (mark (find-if (lambda (ped)
                                 (and (not (already-asked ped))
