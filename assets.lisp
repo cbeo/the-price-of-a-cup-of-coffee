@@ -104,6 +104,7 @@
 (defparameter +speechbubble-image+ #P"assets/Speechbubble.png")
 (defparameter +cop1-sheet-image+ #P"assets/Cop1.png")
 (defparameter +cop2-sheet-image+ #P"assets/Cop2.png")
+(defparameter +title-card-image+ #P"assets/TitleCard.png")
 
 (defvar *nance-texture*)
 (defvar *suit-texture*)
@@ -116,6 +117,7 @@
 (defvar *backdrop-texture*)
 (defvar *sliding-door-texture*)
 (defvar *speech-bubble-texture*)
+(defvar *title-card-texture*)
 
 (defparameter +sliding-door-open-x+ 800)
 (defparameter +sliding-door-closed-x+ 868)
@@ -138,6 +140,13 @@
 (defun make-texture-from-file (renderer filepath)
   (with-surface-from-file (surf filepath)
     (sdl2:create-texture-from-surface renderer surf)))
+
+
+(defun boot-and-show-title (renderer)
+  (setf *title-card-texture* (make-texture-from-file renderer +title-card-image+))
+  (sdl2:render-copy renderer *title-card-texture*)
+  (sdl2:render-present renderer))
+
 
 (defun boot-up-assets (renderer)
   (setf *nance-texture* (make-texture-from-file renderer  +nance-sheet-image+))

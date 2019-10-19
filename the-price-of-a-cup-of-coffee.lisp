@@ -14,6 +14,7 @@
 (defparameter +coffee-cost+ 0.45)
 (defparameter +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
 
+
 ;;; STUCTS AND CLASSES
 (defstruct keys-down left right up down action)
 
@@ -53,6 +54,7 @@
 
 ;;; GLOBALS
 (defvar *nance*)
+(defvar *special-nance* t)
 (defvar *pedestrians* nil)
 (defvar *to-render-by-y* nil)
 (defvar *on-coffee-break* nil)
@@ -61,7 +63,7 @@
 (defvar *tweens* nil)
 (defvar *sickness-rect* (sdl2:make-rect 0 0 40 40))
 (defvar *collision-on-p* t)
-(defvar *input-mode* :normal) ;; (or :normal :start nil)
+(defvar *input-mode* :start) ;; (or :normal :start nil)
 (defvar *collision-count* 0)
 (defvar *ped-hit-box* (sdl2:make-rect 0 0 64 32))
 (defvar *nance-hit-box* (sdl2:make-rect 0 0 64 32))
@@ -197,8 +199,11 @@
   (render *cold-meter* renderer)
 
   (when *fading-out*
-    (sdl2:set-render-draw-color renderer 0 0 0 (car *fading-out*))
-    (sdl2:render-fill-rect renderer +screen-sized-rect+))
+    (apply #'sdl2:set-render-draw-color (list* renderer *fading-out*))
+    ;(sdl2:set-render-draw-color renderer #x94 #x94 #x94 (car *fading-out*))
+    (sdl2:render-fill-rect renderer +screen-sized-rect+)
+    (when *special-nance*
+      (render *nance* renderer)))
 
   ;; present
   (sdl2:render-present renderer))
@@ -351,10 +356,7 @@
   (push *nance* *to-render-by-y*)
 
   (check-sickness-loop)
-  (spawn-pedestrian-loop)
-  ;; boot up initial pedestrians
-  (push (make-suit) *pedestrians*)
-  (push (car *pedestrians*) *to-render-by-y*))
+  (spawn-pedestrian-loop))
 
 
 ;;; SPAWNING PEDESTRIANS
@@ -449,6 +451,21 @@
   (setf *tweens*
         (delete-if ($ #'tween-finished-p _ time)
                    *tweens*)))
+
+(defun fade-into-game ()
+  (setf *fading-out* (list #x94 #x94 #x94 255))
+  (setf *input-mode* nil)
+  (push (animate *fading-out* 'cadddr 0
+                 :start (sdl2:get-ticks)
+                 :duration 4000
+                 :on-complete
+                 (lambda ()
+                   (setf *special-nance* nil)
+                   (setf *fading-out* nil)
+                   (setf *input-mode* :normal)
+                   (play-track *cold-day-track*)))
+        *tweens*))
+
 
 (defun emote (who emotion &optional duration)
   (setf (expression who) emotion)
@@ -680,7 +697,8 @@
           *tweens*)))
 
 (defun fade-in ()
-  (push (animate *fading-out* 'car 0
+  (setf *fading-out* (list 0 0 0 255))
+  (push (animate *fading-out* 'cadddr 0
                  :start (sdl2:get-ticks) :duration 1000
                  :on-complete (lambda () (setf *fading-out* nil)))
         *tweens*))
@@ -688,13 +706,13 @@
 
 
 (defun fade-out ()
-  (setf *fading-out* (list 0))
-  (push (animate *fading-out* 'car 255 :start (sdl2:get-ticks) :duration 5000)
+  (setf *fading-out* (list 0 0 0 0))
+  (push (animate *fading-out* 'cadddr 255 :start (sdl2:get-ticks) :duration 5000)
         *tweens*))
 
 (defun end-fade-out ()
-  (setf *fading-out* (list 0))
-  (push (animate *fading-out* 'car 200 :start (sdl2:get-ticks) :duration 15000)
+  (setf *fading-out* (list 0 0 0 0))
+  (push (animate *fading-out* 'cadddr 200 :start (sdl2:get-ticks) :duration 10000)
         *tweens*))
 
 ;;;; HELPERS
@@ -892,6 +910,9 @@
 (defun handle-keydown (keysym)
   (let ((key (sdl2:scancode-value keysym)))
     (case *input-mode*
+      (:start
+       (match-key key
+         (:scancode-space (fade-into-game))))
       (:normal
        (match-key key
          (:scancode-space (unless (keys-down-action *keys-down*)
@@ -977,12 +998,16 @@
 
 
 (defun start ()
+  (setf *input-mode* :start)
+  (setf *pedestrians* nil)
+  (setf *to-render-by-y* nil)
   (unwind-protect
        (sdl2:with-init (:everything)
          (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
            (sdl2:with-renderer (renderer win :flags '(:accelerated))
+             (boot-and-show-title renderer)
              (boot-up renderer)
-             (play-track *cold-day-track*)
+             ;; (play-track *cold-day-track*)
              (sdl2:with-event-loop (:method :poll)
                (:keydown (:keysym keysym)
                          (if (sdl2:scancode= (sdl2:scancode-value keysym) :scancode-escape)
@@ -991,7 +1016,8 @@
                (:keyup (:keysym keysym)  (handle-keyup keysym))
                (:idle ()
                       (update :game (sdl2:get-ticks))
-                      (render :game renderer)
+                      (unless (eql *input-mode* :start)
+                        (render :game renderer))
                       (sdl2:delay +frame-delay+))
                (:quit () t)))))
     (free-assets)))
