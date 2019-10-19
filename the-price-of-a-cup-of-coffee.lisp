@@ -110,18 +110,6 @@
     (stressed-out-sequence)))
 
 
-;; TODO - REIMPLEMENT TO WORK WITH *TWEENS*
-;; (defun drink-coffee ()
-;;   (let ((now (sdl2:get-ticks))
-;;         (dur 1750)
-;;         (ease #'cubic-in-out))
-;;     (setf *coffee-break-tween*
-;;           (as-group
-;;            (animate *cold-meter* 'percent 0.0 :start now :rounding nil :duration dur
-;;                     :ease ease)
-;;            (animate *stress-meter* 'percent (* 0.4 (percent *stress-meter*))
-;;                     :start now :rounding nil :duration dur
-;;                     :ease ease)))))
 
 (defun get-sick ()
   (unless (sick-p *nance*)
