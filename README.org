@@ -28,8 +28,8 @@
   
 ** Requirements
 
-   - sdl2
-   - sdl2-image 
+   - [[https://www.libsdl.org/download-2.0.php][sdl2]]
+   - [[https://www.libsdl.org/projects/SDL_image/][sdl2-image]] 
    - [[https://github.com/thegoofist/animise][animise]]
    - [[https://github.com/thegoofist/lettuce][lettuce]]
      
@@ -44,12 +44,12 @@
 
    [[https://github.com/thegoofist/lettuce][lettuce]] is just a file containing three macros that I end up using all the
    time. I should probably get rid of it as a dependency b/c between
-   =alexandria= and =trivia= the functionality of =lettuce= is proably covered.
+   =alexandria= and =trivia= the functionality of =lettuce= is proably covered,
+   but ah well.  Clone lettuce into your =local-projects= quicklisp directory.   
 
    Then clone the game's repo into =~/quicklisp/local-projects=.
    
-
-** Using Deploy
+** Linux 
 
    Once requirements are installed, building should be as simple as:
 
@@ -65,7 +65,39 @@ $ sbcl
 $ ./bin/price-of-coffee   
    #+end_src
    
-     
+** Windows 
+
+   To get this to work I had to use a modified version of =cl-sdl2= found in
+   [[https://github.com/lispgames/cl-sdl2/pull/123][this PR]]. After trying that fork, I found a format string bug in =render.lisp=
+   in the =cl-sdl2= source. So I made a change and committed it to [[https://github.com/thegoofist/cl-sdl2][another fork]].
+   You will need to clone [[https://github.com/thegoofist/cl-sdl2][my fork]] into =local-projects= and check out the branch
+   =price-of-coffee-windows-build-fork=.
+
+   I haven't been able to get the windows version to build with audio enabled,
+   so I made a git branch with the changes that helped me build this game on
+   windows. After cloning this repo into your =local-projects= directory within
+   the quicklisp root directory, checkout the =windows-build-mods= branch.
+
+   From within this directory, I did the following:
+
+   #+begin_src 
+# shell...
+
+$ git checkout windows-build-mods
+$ sbcl
+
+;; Lisp REPL ...
+
+> (ql:quickload :cffi)
+> (pushnew #p"." cffi:*foreign-library-directories*)
+> (ql:quickload :the-price-of-a-cup-of-coffee)
+> (asdf:make :the-price-of-a-cup-of-coffee)
+
+   #+end_src
+
+  Then copy all =.dll= and the =assets= directory into =bin=. Double clicking on
+  =price-of-coffee.exe= worked for me. (I don't own a windows machine so I had
+  to go over to a friends' house to get this thing built on windows).
 
 * Credit and Licenses
 
