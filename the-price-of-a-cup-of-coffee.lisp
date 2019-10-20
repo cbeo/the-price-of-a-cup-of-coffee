@@ -482,6 +482,7 @@
 (defun stressed-out-sequence ()
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
+  (clear-keys-down)
   (emote *nance* "breakdown")
   (with-slots (pos face) *nance*
     (let ((move-to-home-base
@@ -503,7 +504,6 @@
 (defun stop-and-consider (pedestrian)
   (setf *collision-on-p* nil)
   (with-slots (walk-vec already-asked expression anger kindness generosity vulnerability) pedestrian
-
     (setf already-asked t)
     (when (walking-p pedestrian)
       (let ((old-vec (copy-list walk-vec)))
@@ -1001,6 +1001,15 @@
   (setf *input-mode* :start)
   (setf *pedestrians* nil)
   (setf *to-render-by-y* nil)
+  (setf *special-nance* t)
+  (setf *space-clamping-p* t)
+  (clear-keys-down)
+  (setf (percent *money-meter*) 0)
+  (setf (percent *stress-meter*) 0)
+  (setf (percent *cold-meter*) 0)
+  (setf *pedestrian-count* 4)
+  (setf *collision-count* 0)
+
   (unwind-protect
        (sdl2:with-init (:everything)
          (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
