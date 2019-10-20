@@ -1,6 +1,66 @@
 
 * Game
+
+  You play Nance, a homeless human on cold day in some bustling metropolis. Your
+  task is to stay warm and stay healthy. 
+
+  People pass you by and you can ask them for a little change as the do. You
+  must walk up to them in order to ask! _But be careful!_ You don't want to bump
+  into anybody! Bumping into people is stressful, and besides, somebody might
+  call the cops.
+
+  Some people are jerks, so watch out - you don't want to get too stressed. 
+
+  When you have enough money, you can go to the shop and buy coffee to warm you
+  up and chill you out a little. When you have a full pocket, you can buy
+  something to eat and advance to the next level.
+
+** Controls
+
+   Use arrow keys to move.
+
+   Use the spacebar to ask people or to buy coffee or food when you're in front
+   of the shop's door.
+
 * Building
+
+   So far I have built this using [[https://shinmera.github.io/deploy/][deploy]], which has worked quite well.
+  
+** Requirements
+
+   - sdl2
+   - sdl2-image 
+   - [[https://github.com/thegoofist/animise][animise]]
+
+   Ensure that [[https://www.libsdl.org/][sdl2]] is installed on your system and install [[http://quickdocs.org/cl-sdl2/][cl-sdl2]] and
+   [[http://quickdocs.org/cl-sdl2-image/][cl-sdl2-image]] via quicklisp.
+
+   [[https://github.com/thegoofist/animise][animise]] is a tweening library that, at the time of writing, is not fit for
+   stable release. 
+
+   Clone animise into your =~/quicklisp/local-projects= and checkout commit
+   =aeb013df855052aec8a5199f82d9725be6d99c1b=.
+
+   Then clone the game's repo into =~/quicklisp/local-projects=.
+
+** Using Deploy
+
+   Once requirements are installed, building should be as simple as:
+
+   #+begin_src 
+$ cd ~/quicklisp/local-projects
+$ sbcl
+
+...
+
+> (ql:quickload :the-price-of-a-cup-of-coffee)
+> (asdf:make :the-price-of-a-cup-of-coffee)
+
+$ ./bin/price-of-coffee   
+   #+end_src
+   
+     
+
 * Credit and Licenses
 
   + Design and Code by :: [[https://github.com/thegoofist/][The Goofist]] under the  [[./LICENSE][GNU Public License version 3]].
