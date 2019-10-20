@@ -247,9 +247,10 @@
 
     (collision-check ped)
 
-    (when (or (< (sdl2:rect-x pos) -50)
-              (< +window-width+ (sdl2:rect-x pos)))
-      (reset-pedestrian ped))))
+    (when (or (< (sdl2:rect-x pos) -65)
+              (< (+ 65 +window-width+) (sdl2:rect-x pos)))
+      (remove-pedestrian ped))))
+
 
 (defmethod update ((game (eql :game)) time)
   (update *nance* time)
@@ -422,6 +423,7 @@
     punker))
 
 (defun add-pedestrian (ped)
+  (reset-pedestrian ped)
   (push ped *pedestrians*)
   (push ped *to-render-by-y*))
 
@@ -720,9 +722,19 @@
   (setf *human-frame-pause* (/ 1000 n)))
 
 (defun reset-pedestrian (ped)
-  (setf (already-asked ped) nil)
-  (setf (sdl2:rect-y (pos ped)) (random-y-pos))
-  (setf (sdl2:rect-x (pos ped)) -49))
+  (with-slots (already-asked pos walk-vec walk-speed) ped
+    (setf already-asked nil)
+    (setf (sdl2:rect-y pos) (random-y-pos))
+    (setf (cdr walk-vec) 0)
+    (if (cointoss)
+        (progn
+          (setf (sdl2:rect-x pos) -64)
+          (setf (car walk-vec) walk-speed))
+        (progn
+          (setf (sdl2:rect-x pos) (+ 64 +window-width+))
+          (setf (car walk-vec) (* -1 walk-speed))))
+    (set-walk-face-by-walk-vec ped)))
+
 
 (defun snap-hit-box-to (human hitbox)
   (setf (sdl2:rect-x hitbox) (x-pos human))
