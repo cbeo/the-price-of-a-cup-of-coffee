@@ -473,8 +473,8 @@
                  (lambda ()
                    (setf *special-nance* nil)
                    (setf *fading-out* nil)
-                   (setf *input-mode* :normal)
-                   (play-track *cold-day-track*)))
+                   (setf *input-mode* :normal)))
+                   ;(play-track *cold-day-track*)))
         *tweens*))
 
 
@@ -554,7 +554,7 @@
 
 (defun get-coffee! ()
   (decf (percent *money-meter*) +coffee-cost+)
-  (play-track *looking-up-track*)
+;  (play-track *looking-up-track*)
   (emote *nance* "coffee")
   (setf *collision-on-p* nil)
   (setf *on-coffee-break* t)
@@ -565,7 +565,7 @@
     (pause-then
      dur
      (lambda ()
-       (play-track *cold-day-track*)
+;       (play-track *cold-day-track*)
        (emote *nance* nil)
        (setf *collision-on-p* t)
        (setf *on-coffee-break* nil)))))
@@ -645,7 +645,7 @@
 
 (defun get-food! ()
   (setf (percent *money-meter*) 0.0)
-  (play-track *looking-up-track*)
+;  (play-track *looking-up-track*)
   (emote *nance* (choose-one "food1" "food2" "food3" "food4" "food5"))
   (setf *collision-on-p* 0)
   (setf *collision-count* 0)
@@ -661,7 +661,7 @@
                   (setf *pedestrian-count* (* 2 *pedestrian-count*))
                   (setf (x-pos *nance*) +home-base-x+)
                   (setf (y-pos *nance*) +home-base-y+)
-                  (play-track *cold-day-track*)
+;                  (play-track *cold-day-track*)
                   (emote *nance* nil)
                   (setf *collision-on-p* t)
                   (setf *on-coffee-break* nil)))))
@@ -672,7 +672,7 @@
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
   (clear-keys-down)
-  (harmony-simple:stop *current-track*)
+;  (harmony-simple:stop *current-track*)
 
   (dolist (p *pedestrians*) (setf (paused p) t))
 
@@ -1008,17 +1008,23 @@
 
 ;;; AUDIO
 
-(defun play-track (track)
-  (harmony-simple:stop *current-track*)
-  (harmony-simple:resume track)
-  (setf *current-track* track))
+(defun play-track (track))
+;  (harmony-simple:stop *current-track*)
+ ; (harmony-simple:resume track)
+  ;(setf *current-track* track))
 
 ;;; GAME LOOP
 
-;; (defun start-debug ()
-;;   (bt:make-thread (lambda () (swank:create-server :port 4006 :dont-close t)))
-;;   (start))
 
+(deploy:define-library libpng
+  :path "libpng16-16.dll")
+
+
+(defun start-debug ()
+  (bt:make-thread (lambda () (swank:create-server :port 4006 :dont-close t)))
+  (start))
+
+(defvar *renderer*)
 
 (defun start ()
   (setf +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
@@ -1047,6 +1053,7 @@
        (sdl2:with-init (:everything)
          (sdl2:with-window (win :w 1024 :h 600 :title "The Price Of A Cup Of Coffee" :flags '(:shown))
            (sdl2:with-renderer (renderer win :flags '(:accelerated ))
+             (setf *renderer* renderer)
              (boot-and-show-title renderer)
              (boot-up renderer)
              (sdl2:with-event-loop (:method :poll)
@@ -1062,4 +1069,3 @@
                       (sdl2:delay +frame-delay+))
                (:quit () t)))))
     (free-assets)))
-

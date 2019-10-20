@@ -123,9 +123,9 @@
 
 
 (defvar *harmony-initialized-p* nil)
-(defvar *cold-day-track*)
-(defvar *looking-up-track*)
-(defvar *current-track*)
+(defvar *cold-day-track* nil)
+(defvar *looking-up-track* nil )
+(defvar *current-track* nil)
 
 (defvar *cop-animation-faces*)
 
@@ -163,18 +163,18 @@
   (setf *speech-bubble-texture* (make-texture-from-file renderer +speechbubble-image+))
   (setf *cop1-texture* (make-texture-from-file renderer +cop1-sheet-image+))
   (setf *cop2-texture* (make-texture-from-file renderer +cop2-sheet-image+))
-
-  (unless *harmony-initialized-p*
-    (harmony-simple:initialize)
-    (setf *looking-up-track* (harmony-simple:play +things-look-up-track-path+ :music :loop t))
-    (harmony-simple:stop *looking-up-track*)
-    (setf *cold-day-track* (harmony-simple:play +cold-day-track-path+ :music :loop t))
-    (setf *current-track* *cold-day-track*)
-    (harmony-simple:stop *cold-day-track*)
-    (setf *harmony-initialized-p* t)))
+)
+  ;; (unless *harmony-initialized-p*
+  ;;   (harmony-simple:initialize)
+  ;;   (setf *looking-up-track* (harmony-simple:play +things-look-up-track-path+ :music :loop t))
+  ;;   (harmony-simple:stop *looking-up-track*)
+  ;;   (setf *cold-day-track* (harmony-simple:play +cold-day-track-path+ :music :loop t))
+  ;;   (setf *current-track* *cold-day-track*)
+  ;;   (harmony-simple:stop *cold-day-track*)
+  ;;   (setf *harmony-initialized-p* t)))
 
 (defun free-assets ()
-  (harmony-simple:stop *current-track*)
+;  (harmony-simple:stop *current-track*)
   (sdl2:destroy-texture *expression-texture*)
   (sdl2:destroy-texture *nance-texture*)
   (sdl2:destroy-texture *normy-texture*)
@@ -189,4 +189,3 @@
       (setf exp (find-tile-rect +emoji-defs+ expression))
       (setf (gethash expression *expression-cache*) exp))
     exp))
-

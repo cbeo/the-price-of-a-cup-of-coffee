@@ -5,14 +5,14 @@
 
   :defsystem-depends-on (:deploy)
   :build-operation "deploy-op"
-  :build-pathname "price-of-coffee"
-  :entry-point "pocc::start"
+  :build-pathname "price-of-coffee.exe"
+  :entry-point "pocc::start-debug"
 
   :author "<thegoofist@protonmail.com>"
   :license  "GPL3"
   :version "0.0.1"
   :serial t
-  :depends-on (#:animise #:sdl2 #:sdl2-image #:harmony-simple #:trivia) ;  #:swank)
+  :depends-on (#:animise #:sdl2 #:sdl2-image #:trivia  #:swank)
   :components ((:file "package")
                (:file "macros")
                (:file "assets")

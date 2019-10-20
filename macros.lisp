@@ -68,4 +68,3 @@
      (unwind-protect
           (progn ,@body)
        (sdl2:free-surface ,var))))
-
