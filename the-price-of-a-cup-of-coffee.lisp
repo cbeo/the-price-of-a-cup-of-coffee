@@ -12,7 +12,7 @@
 (defparameter +home-base-y+ 36)
 (defparameter +home-base-x+ 292)
 (defparameter +coffee-cost+ 0.45)
-(defparameter +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
+(defparameter +screen-sized-rect+ nil)
 
 
 ;;; STUCTS AND CLASSES
@@ -58,33 +58,38 @@
 (defvar *pedestrians* nil)
 (defvar *to-render-by-y* nil)
 (defvar *on-coffee-break* nil)
-(defvar *status-meter-decoration-rect* (sdl2:make-rect 0 0 48 48))
+(defvar *status-meter-decoration-rect*)
 (defvar *space-clamping-p* t)
 (defvar *tweens* nil)
-(defvar *sickness-rect* (sdl2:make-rect 0 0 40 40))
+(defvar *sickness-rect*)
 (defvar *collision-on-p* t)
 (defvar *input-mode* :start) ;; (or :normal :start nil)
 (defvar *collision-count* 0)
-(defvar *ped-hit-box* (sdl2:make-rect 0 0 64 32))
-(defvar *nance-hit-box* (sdl2:make-rect 0 0 64 32))
+(defvar *ped-hit-box* )
+(defvar *nance-hit-box* )
 (defvar *fading-out* nil)
 (defvar *door-open-p* nil)
-(defvar *expression-rect*
-  (sdl2:make-rect 0 0 50 50)
-  "used to render expressions.")
-(defvar *keys-down* (make-keys-down))
+(defvar *expression-rect*)
+
+(defvar *keys-down*)
 (defvar *human-frame-pause* (/ 1000 4))
 
 (defvar *cached-pedestrians* nil)
 (defvar *pedestrian-count* 4)
+(defvar *money-meter* nil)
+(defvar *stress-meter* nil)
+(defvar *cold-meter* nil)
 
-(let* ((padding 8)
-       (y (- +window-height+ +meter-bar-height+ padding))
-       (measure (round (/ +window-width+ 5)))
-       (width (- measure (* 2 padding)))
-       (double-width (- (* 2 measure) (* 2 padding))))
 
-  (defvar *money-meter*
+(defun boot-meters ()
+
+  (let* ((padding 8)
+         (y (- +window-height+ +meter-bar-height+ padding))
+         (measure (round (/ +window-width+ 5)))
+         (width (- measure (* 2 padding)))
+         (double-width (- (* 2 measure) (* 2 padding))))
+
+  (setf *money-meter*
     (make-instance 'status-meter
                    :color (list 0 200 50 200)
                    :decoration "dollars"
@@ -93,7 +98,7 @@
                    :percent 0.0
                    :max-width double-width))
 
-  (defvar *stress-meter*
+  (setf *stress-meter*
     (make-instance 'status-meter
                    :color (list 200 20 20 200)
                    :decoration "stressed"
@@ -104,7 +109,7 @@
                    :percent 0.0
                    :max-width width))
 
-  (defvar *cold-meter*
+  (setf *cold-meter*
     (make-instance 'status-meter
                    :color (list 0 140 240 200)
                    :decoration "cold"
@@ -112,6 +117,19 @@
                    :shape (sdl2:make-rect (+ padding (* 4 measure)) y width +meter-bar-height+)
                    :percent 0.0
                    :max-width width)))
+
+  (defmethod render :after ((money-meter (eql *money-meter*)) renderer)
+    (let ((x (round (* +coffee-cost+ (max-width money-meter)))))
+      (setf (sdl2:rect-x *status-meter-decoration-rect*) x)
+      (sdl2:render-copy renderer *expression-texture*
+                        :source-rect (get-expression "coffee")
+                        :dest-rect *status-meter-decoration-rect*)))
+
+  (defmethod (setf percent) :after (new-val (meter (eql *stress-meter*)))
+    (when (<= 1.0 new-val)
+      (stressed-out-sequence)))
+
+  )
 
 ;;; GENERICS
 (defgeneric render (sprite renderer))
@@ -149,12 +167,6 @@
                       :dest-rect *status-meter-decoration-rect*)))
 
 
-(defmethod render :after ((money-meter (eql *money-meter*)) renderer)
-  (let ((x (round (* +coffee-cost+ (max-width money-meter)))))
-    (setf (sdl2:rect-x *status-meter-decoration-rect*) x)
-    (sdl2:render-copy renderer *expression-texture*
-                      :source-rect (get-expression "coffee")
-                      :dest-rect *status-meter-decoration-rect*)))
 
 (defmethod render ((human human) renderer)
   (with-slots (pos sheet faces face frame expression) human
@@ -273,9 +285,6 @@
     (setf percent (clamp new-val 0.0 1.0))
     (setf (sdl2:rect-width filled-shape) (round (* max-width percent)))))
 
-(defmethod (setf percent) :after (new-val (meter (eql *stress-meter*)))
-  (when (<= 1.0 new-val)
-    (stressed-out-sequence)))
 
 
 (defmethod (setf walk-speed) :after (newval (human human))
@@ -1012,6 +1021,16 @@
 
 
 (defun start ()
+  (setf +screen-sized-rect+ (sdl2:make-rect 0 0 +window-width+ +window-height+))
+  (setf *status-meter-decoration-rect*  (sdl2:make-rect 0 0 48 48))
+  (setf *sickness-rect*  (sdl2:make-rect 0 0 40 40))
+  (setf *ped-hit-box* (sdl2:make-rect 0 0 64 32))
+  (setf *nance-hit-box* (sdl2:make-rect 0 0 64 32))
+  (setf *expression-rect*   (sdl2:make-rect 0 0 50 50))
+  (setf *keys-down* (make-keys-down))
+
+  (boot-meters)
+
   (setf *input-mode* :start)
   (setf *pedestrians* nil)
   (setf *to-render-by-y* nil)

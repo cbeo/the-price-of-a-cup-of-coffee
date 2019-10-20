@@ -86,9 +86,7 @@
  (:NAME "very-angry" :X 0 :Y 0  :WIDTH 72 :HEIGHT 72)))
 
 
-(defparameter +shared-faces+
-  (create-sprite-faces +tile-defs+))
-
+(defparameter +shared-faces+ nil)
 
 
 (defparameter +nance-sheet-image+ #P"assets/Nance.png")
@@ -121,21 +119,15 @@
 
 (defparameter +sliding-door-open-x+ 800)
 (defparameter +sliding-door-closed-x+ 868)
-(defvar *sliding-door-position*
-  (sdl2:make-rect +sliding-door-closed-x+ 8 104 138))
+(defvar *sliding-door-position*)
+
 
 (defvar *harmony-initialized-p* nil)
 (defvar *cold-day-track*)
 (defvar *looking-up-track*)
 (defvar *current-track*)
 
-(defvar *cop-animation-faces*
-  (let* ((f1 (sdl2:make-rect 0 0 64 128))
-         (f2 (sdl2:make-rect 64 0 64 128))
-         (v (make-array 2 :initial-contents (list f1 f2))))
-    (make-sprite-faces
-     :facing-down v :facing-up v :facing-left v :facing-right v
-     :walking-down v :walking-up v :walking-left v :walking-right v)))
+(defvar *cop-animation-faces*)
 
 (defun make-texture-from-file (renderer filepath)
   (with-surface-from-file (surf filepath)
@@ -149,6 +141,17 @@
 
 
 (defun boot-up-assets (renderer)
+  (setf +shared-faces+ (create-sprite-faces +tile-defs+))
+  (setf *sliding-door-position*
+    (sdl2:make-rect +sliding-door-closed-x+ 8 104 138))
+  (setf *cop-animation-faces*
+        (let* ((f1 (sdl2:make-rect 0 0 64 128))
+               (f2 (sdl2:make-rect 64 0 64 128))
+               (v (make-array 2 :initial-contents (list f1 f2))))
+          (make-sprite-faces
+           :facing-down v :facing-up v :facing-left v :facing-right v
+           :walking-down v :walking-up v :walking-left v :walking-right v)))
+
   (setf *nance-texture* (make-texture-from-file renderer  +nance-sheet-image+))
   (setf *suit-texture* (make-texture-from-file renderer  +suit-sheet-image+))
   (setf *normy-texture* (make-texture-from-file renderer  +nomry-sheet-image+))
