@@ -260,11 +260,11 @@
   (unless *on-coffee-break*
     (if (walking-p *nance*)
         (unless (sick-p *nance*)
-          (decf (percent *cold-meter*) 0.0004))
+          (decf (percent *cold-meter*) 0.0002))
         (progn
-          (incf (percent *cold-meter*) 0.0003)
+          (incf (percent *cold-meter*) 0.0005)
           (unless (sick-p *nance*)
-            (decf (percent *stress-meter*) 0.0003))))))
+            (decf (percent *stress-meter*) 0.0001))))))
 
 
 ;;; ACCESSORS
@@ -484,6 +484,7 @@
 (defun stressed-out-sequence ()
   (setf *collision-on-p* nil)
   (setf *input-mode* nil)
+  (setf (walk-vec *nance*) (cons 0 0))
   (clear-keys-down)
   (emote *nance* "breakdown")
   (with-slots (pos face) *nance*
@@ -524,9 +525,10 @@
                              ((cointoss kindness)
                               (emote pedestrian (choose-one "relaxed" "heart1" "heart2" "heart3" "angry") 2500)
                               (emote *nance* (choose-one "relaxed" "heart1" "heart2" "heart3") 2000)
-                              (incf (percent *money-meter*) (random generosity)))
-                             (t
                               (incf (percent *stress-meter*) vulnerability)
+                              (incf (percent *money-meter*) (+ 0.05 (random generosity))))
+                             (t
+                              (incf (percent *stress-meter*) (* 1.7 vulnerability))
                               (emote pedestrian (choose-one "sorry-no" "neutral") 2500)))
                            (resume-walking pedestrian old-vec 800)))))))
 
