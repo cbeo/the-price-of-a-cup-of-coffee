@@ -31,7 +31,8 @@
    - sdl2
    - sdl2-image 
    - [[https://github.com/thegoofist/animise][animise]]
-
+   - [[https://github.com/thegoofist/lettuce][lettuce]]
+     
    Ensure that [[https://www.libsdl.org/][sdl2]] is installed on your system and install [[http://quickdocs.org/cl-sdl2/][cl-sdl2]] and
    [[http://quickdocs.org/cl-sdl2-image/][cl-sdl2-image]] via quicklisp.
 
@@ -41,7 +42,12 @@
    Clone animise into your =~/quicklisp/local-projects= and checkout commit
    =aeb013df855052aec8a5199f82d9725be6d99c1b=.
 
+   [[https://github.com/thegoofist/lettuce][lettuce]] is just a file containing three macros that I end up using all the
+   time. I should probably get rid of it as a dependency b/c between
+   =alexandria= and =trivia= the functionality of =lettuce= is proably covered.
+
    Then clone the game's repo into =~/quicklisp/local-projects=.
+   
 
 ** Using Deploy
 
