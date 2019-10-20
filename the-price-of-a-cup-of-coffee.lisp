@@ -369,7 +369,7 @@
                          :sheet *suit-texture*
                          :comfort-rad 120
                          :anger 0.1
-                         :kindness 0.12
+                         :kindness 0.18
                          :generosity 0.25
                          :vulnerability 0.04
                          )))
@@ -386,7 +386,7 @@
                          :sheet *normy-texture*
                          :comfort-rad 90
                          :anger 0.07
-                         :kindness 0.2
+                         :kindness 0.24
                          :generosity 0.2
                          :vulnerability 0.05)))
     (setf (walk-speed normy) 4)
@@ -414,7 +414,7 @@
                          :sheet *punker-texture*
                          :comfort-rad 100
                          :anger 0.01
-                         :kindness 0.3
+                         :kindness 0.31
                          :generosity 0.5
                          :vulnerability 0.01)))
     (setf (walk-speed punker) 3)
