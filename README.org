@@ -1,7 +1,7 @@
 
 * Game
 
-  __The Price Of A Cup Of Coffee__ is my entry into the 10 day 
+  _The Price Of A Cup Of Coffee_ is my entry into the 10 day 
   [[https://itch.io/jam/autumn-lisp-game-jam-2019][Autumn Lisp Game Jam 2019]].  You can download executables for windows and linux
   from the game's [[https://goofist.itch.io/the-price-of-a-cup-of-coffee][itch.io page]]. 
 
