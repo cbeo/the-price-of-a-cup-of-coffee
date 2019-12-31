@@ -453,7 +453,8 @@
 (defun spawn-pedestrian-loop ()
   (when (< (length *pedestrians*) *pedestrian-count*)
     (spawn-pedestrian))
-  (pause-then 1200 #'spawn-pedestrian-loop))
+  (pause-then 600 #'spawn-pedestrian-loop))
+
 
 ;;;; ANIMATIONS AND SEQUENCES
 (defun update-tweens (time)
