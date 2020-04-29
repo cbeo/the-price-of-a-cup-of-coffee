@@ -106,7 +106,7 @@ $ sbcl
 
 * Credit and Licenses
 
-  + Design and Code by :: [[https://github.com/thegoofist/][The Goofist]] under the  [[./LICENSE][GNU Public License version 3]].
+  + Design and Code by :: [[https://github.com/cbeo/][cbeo]] under the  [[./LICENSE][GNU Public License version 3]].
 
   + Art by :: _Ct_ under a [[https://creativecommons.org/licenses/by-nc-sa/4.0/][Attribution Non-Commercial Share Alike 4.0]] Creative Commons License.
 
